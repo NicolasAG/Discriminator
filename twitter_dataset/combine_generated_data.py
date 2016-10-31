@@ -339,9 +339,14 @@ def main():
     if args.save_data:
         print "\nSaving resulting dataset in ", args.data_fname, "..."
         file = open(args.data_fname, 'wb')
-        cPickle.dump(data, file, protocol=cPickle.HIGHEST_PROTOCOL)
+        cPickle.dump((data['train'], data['val'], data['test']), file, protocol=cPickle.HIGHEST_PROTOCOL)
         file.close()
         print "Saved."
+
+    ###
+    # TODO: LEARN THE WORD EMBEDINGS! matrix W
+    ###
+
 
 if __name__ == '__main__':
     main()
