@@ -259,11 +259,11 @@ def main():
     # print "- - -"
 
     ### Making sure no train dialogues is present in test or validation sets:
-    print "\nmaking sure no train_context is in test or validation set..."
-    for train_c in data['train']['c']:
-        assert train_c not in data['test']['c']
-        assert train_c not in data['val']['c']
-    print "ok."
+    # print "\nmaking sure no train_context is in test or validation set..."
+    # for train_c in data['train']['c']:
+    #     assert train_c not in data['test']['c']
+    #     assert train_c not in data['val']['c']
+    # print "ok."
 
     ###
     # LOAD GENERATED DATA & ADD IT TO CURRENT DATA
