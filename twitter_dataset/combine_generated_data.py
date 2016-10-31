@@ -5,18 +5,6 @@ from datetime import datetime
 from apply_bpe import BPE
 
 
-def revertDictionary(p_dict):
-    """
-    Create a new dictionary that maps values to keys.
-    :param p_dict: the original dictionary that maps keys to values.
-    :return: new dictionary that maps values to keys.
-    """
-    out = {}
-    for key, value in p_dict.iteritems():
-        out[value] = key
-    return out
-
-
 def string2indices(p_str, str_to_idx, bpe=None):
     """
     Lookup dictionary from word to index to retrieve the list of indices from a string of words.
@@ -60,98 +48,28 @@ def process_dialogues(dialogues):
     return contexts, responses
 
 
-def getIndex(context, data):
-    """
-    Search for the set (train or val or test set) where context is present.
-    :param context: array of numbers representing the context that we are looking for.
-    :param data: dictionary that has all the training, validation, test sets.
-    :return: 'train' or 'val' or 'test' according to which set the context is found in or '' if not found.
-    """
-    if context in data['test']['c']:
-        return "test"
-    elif context in data['val']['c']:
-        return "val"
-    elif context in data['train']['c']:
-        return "train"
-    return ""
-
-
-def remove_token(data, token):
-    """
-    Remove a specific token from the data. If one data item become empty, remove it.
-    :param data: dictionary of this form {'c':[[#,...,#], ...], 'r':[[#,...,#], ...], 'y':[#,...,#]}
-    :param token: token to be removed from all context and responses in the data.
-    :return: a clean version of the data.
-    """
-    clean_data = {'c':[], 'r':[], 'y':[]}
-    for i, (context, response) in enumerate(zip(data['c'], data['r'])):  # for each context, response filter out 'token'
-        new_context = filter(lambda idx: idx!=token, context)
-        if len(new_context) <= 0:
-            continue  # skip this context/response/flag instance.
-        new_response = filter(lambda idx: idx!=token, response)
-        if len(new_response) <= 0:
-            continue  # skip this context/response/flag instance.
-        clean_data['c'].append(new_context)
-        clean_data['r'].append(new_response)
-        clean_data['y'].append(data['y'][i])
-    return clean_data
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.register('type', 'bool', lambda v: v.lower() in ("yes", "true", "t", "1"))
     parser.add_argument('--data_dir', type=str, default='.', help='Input dir')
-    parser.add_argument('--inputs', nargs='+', type=str, default=None, help='File(s) of responses to be added')
+    parser.add_argument('--inputs', nargs='+', type=str, required=True, help='File(s) of responses to be added')
     parser.add_argument('--save_data', type='bool', default=True, help='Whether to save the new data')
     parser.add_argument('--data_fname', type=str, default='dataset_twitter_bpe_indices.pkl', help='Destination of new data')
     args = parser.parse_args()
     print "args: ", args
 
     ###
-    # Load the current training, validation, test sets of Twitter
-    # Load the DE dictionaries: map words to indices - vocab ~ 200,000
-    ###
-    print "\nLoading original twitter data..."
-    # train_data, val_data, test_data = cPickle.load(open('%s/DE/dataset_twitter_de.pkl' % args.data_dir, 'rb'))
-    # _, twitter_de_str_to_idx = cPickle.load(open('%s/DE/W_twitter.pkl' % args.data_dir, 'rb'))
-    # twitter_de_idx_to_str = revertDictionary(twitter_de_str_to_idx)
-    # print "DE dictionary length =", len(twitter_de_str_to_idx)
-
-    ###
     # Load the original Twitter dataset in BPE format - only TRUE responses
     ###
-    train_dialogues = cPickle.load(open('%s/BPE/Train.dialogues.pkl' % args.data_dir, 'rb'))
-    val_dialogues = cPickle.load(open('%s/BPE/Valid.dialogues.pkl' % args.data_dir, 'rb'))
-    test_dialogues = cPickle.load(open('%s/BPE/Test.dialogues.pkl' % args.data_dir, 'rb'))
+    print "\nLoading original twitter data..."
+    dialogues = cPickle.load(open('%s/BPE/Train.dialogues.pkl' % args.data_dir, 'rb'))
+    # get the list of contexts, and the list of TRUE responses.
+    contexts, true_responses = process_dialogues(dialogues)
+    # get the list of RANDOM responses.
+    random_responses = true_responses
+    random.shuffle(random_responses)
 
-    train_data = {'c':[], 'r':[], 'y':[]}
-    train_contexts, train_responses = process_dialogues(train_dialogues)
-    for train_context, train_response in zip(train_contexts, train_responses):
-        train_data['c'].append(train_context)
-        train_data['r'].append(train_response)
-        train_data['y'].append(1)
-    val_data = {'c':[], 'r':[], 'y':[]}
-    val_contexts, val_responses = process_dialogues(val_dialogues)
-    for val_context, val_response in zip(val_contexts, val_responses):
-        if val_context in train_contexts:
-            continue  # skip this item if its context is already in training set.
-        val_data['c'].append(val_context)
-        val_data['r'].append(val_response)
-        val_data['y'].append(1)
-    test_data = {'c':[], 'r':[], 'y':[]}
-    test_contexts, test_responses = process_dialogues(test_dialogues)
-    for test_context, test_response in zip(test_contexts, test_responses):
-        if test_context in train_contexts:
-            continue  # skip this item if its context is already in training set.
-        test_data['c'].append(test_context)
-        test_data['r'].append(test_response)
-        test_data['y'].append(1)
-
-    # print "making sure filtering is valid for CONTEXTS..."
-    # for c in train_data['c']:
-    #     assert c not in val_data['c']
-    #     assert c not in test_data['c']
-    # print "ok"
+    assert len(contexts) == len(true_responses) == len(random_responses)  # == len(other generated models)...
 
     ###
     # LOAD BPE DICTIONARIES: map bpe_indices/bpe_words - vocab ~ 5,000
@@ -162,165 +80,105 @@ def main():
     twitter_bpe_idx_to_str = dict([(tok_id, tok) for tok, tok_id, _, _ in twitter_bpe_dict])
     print "BPE dictionary length: ", len(twitter_bpe_dict)
 
-    print 'Number of training examples: %d' % (len(train_data['c']))
-    print 'Number of validation examples: %d' % (len(val_data['c']))
-    print 'Number of testing examples: %d' % (len(test_data['c']))
-    print "data loaded!"
+    print "original data loaded!"
 
     ###
-    # Remove **unknown** tokens & delete empty context / responses
+    # LOAD GENERATED DATA
     ###
-    # print "\nRemoving **unknown** tokens and empty context or responses..."
-    # train_data = remove_token(train_data, 172123)
-    # val_data = remove_token(val_data, 172123)
-    # test_data = remove_token(test_data, 172123)
-    # print "done."
-    # print 'Number of training examples: %d' % (len(train_data['c']))
-    # print 'Number of validation examples: %d' % (len(val_data['c']))
-    # print 'Number of testing examples: %d' % (len(test_data['c']))
+    model_responses = {}  # dictionary of the form {'model_id':[list of responses], ...}
 
-    data = {'train': train_data, 'val': val_data, 'test': test_data}
+    for response_file_name in args.inputs:
+        print "\nProcessing ", response_file_name, "..."
+        generated_data = open(response_file_name, 'rb')
 
-    # for i in range(15):
-    #     print "data[train][c][",i,"] =", data['train']['c'][i]
-    #     print " =", indices2string(data['train']['c'][i], twitter_bpe_idx_to_str, twitter_bpe)
-    #     print "data[train][r][",i,"] =", data['train']['r'][i]
-    #     print " =", indices2string(data['train']['r'][i], twitter_bpe_idx_to_str, twitter_bpe)
-    #     print "data[train][y][",i,"] =", data['train']['y'][i]
-    #     print "- - -"
-    # print "data[val][c][0] =", data['val']['c'][0]
-    # print " =", indices2string(data['val']['c'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[val][r][0] =", data['val']['r'][0]
-    # print " =", indices2string(data['val']['r'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[val][y][0] =", data['val']['y'][0]
-    # print "- - -"
-    # print "data[test][c][0] =", data['test']['c'][0]
-    # print " =", indices2string(data['test']['c'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[test][r][0] =", data['test']['r'][0]
-    # print " =", indices2string(data['test']['r'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[test][y][0] =", data['test']['y'][0]
-    # print "- - -"
+        # Get the responses
+        generated_str_responses = []
+        for line in generated_data:
+            generated_str_responses.append(line.replace('\n', ''))
+
+        generated_bpe_responses = map(lambda r: string2indices(r, twitter_bpe_str_to_idx, twitter_bpe), generated_str_responses)
+
+        assert(len(generated_bpe_responses) == len(contexts))
+        model_responses[response_file_name] = generated_bpe_responses
+
+        print "Finished processing file ", response_file_name
 
     ###
-    # CONVERT D.E. LIST OF INDICES TO BPE LIST OF INDICES
+    # CREATE THE DATA SET
     ###
-    # bpe_indices = {
-    #     'train': {'c': [], 'r': [], 'y': data['train']['y']},
-    #     'val': {'c': [], 'r': [], 'y': data['val']['y']},
-    #     'test': {'c': [], 'r': [], 'y': data['test']['y']},
-    # }
-    # print "\nConverting data to bpe indices..."
-    # for key, dialog in data.iteritems():
-    #     # key = 'train' or 'val' or 'test'
-    #     # dialog = {'c':[], 'r':[], 'y':[]}
-    #     for context, response in zip(dialog['c'], dialog['r']):
-    #         # print "DE indices (context) =", context
-    #         # print "DE indices (response) =", response
-    #         # Convert from list of indices to regular string.
-    #         string_context = indices2string(context, twitter_de_idx_to_str)
-    #         string_response = indices2string(response, twitter_de_idx_to_str)
-    #         # print "DE string (context) =", string_context
-    #         # print "DE string (response)", string_response
-    #         # Convert from regular string to bpe string and bpe indices.
-    #         bpe_indices_context = string2indices(string_context, twitter_bpe_str_to_idx, twitter_bpe)
-    #         bpe_indices_response = string2indices(string_response, twitter_bpe_str_to_idx, twitter_bpe)
-    #         # print "BPE string (context) =", indices2string(bpe_indices_context, twitter_bpe_idx_to_str, twitter_bpe)
-    #         # print "BPE string (response) =", indices2string(bpe_indices_response, twitter_bpe_idx_to_str, twitter_bpe)
-    #         # print "BPE indices (context) =", bpe_indices_context
-    #         # print "BPE indices (response) =", bpe_indices_response
-    #         # print "y =", dialog['y'][:15]
-    #         # print ""
-    #         bpe_indices[key]['c'].append(bpe_indices_context)
-    #         bpe_indices[key]['r'].append(bpe_indices_response)
-    # data = bpe_indices
-    # print "train", len(data['train']['c'])
-    # print "val", len(data['val']['c'])
-    # print "test", len(data['test']['c'])
-    # print "data converted!"
+    print "\nCreating new dataset..."
+    train_val_split_index = int(len(contexts) * 0.8)  # 80% training
+    val_test_split_index = int(len(contexts) * 0.9)  # 10% validation 10% test
+    print "number of samples =", len(contexts)
+    print "train samples =", train_val_split_index
+    print "val samples =", val_test_split_index - train_val_split_index
+    print "test samples =", len(contexts) - val_test_split_index
 
-    # for i in range(15):
-    #     print "data[train][c][",i,"] =", data['train']['c'][i]
-    #     print " =", indices2string(data['train']['c'][i], twitter_bpe_idx_to_str, twitter_bpe)
-    #     print "data[train][r][",i,"] =", data['train']['r'][i]
-    #     print " =", indices2string(data['train']['r'][i], twitter_bpe_idx_to_str, twitter_bpe)
-    #     print "data[train][y][",i,"] =", data['train']['y'][i]
-    #     print "- - -"
-    # print "data[val][c][0] =", data['val']['c'][0]
-    # print " =", indices2string(data['val']['c'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[val][r][0] =", data['val']['r'][0]
-    # print " =", indices2string(data['val']['r'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[val][y][0] =", data['val']['y'][0]
-    # print "- - -"
-    # print "data[test][c][0] =", data['test']['c'][0]
-    # print " =", indices2string(data['test']['c'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[test][r][0] =", data['test']['r'][0]
-    # print " =", indices2string(data['test']['r'][0], twitter_bpe_idx_to_str, twitter_bpe)
-    # print "data[test][y][0] =", data['test']['y'][0]
-    # print "- - -"
+    # Split the contexts into train/val/test
+    train_contexts = contexts[:train_val_split_index]
+    val_contexts = contexts[train_val_split_index:val_test_split_index]
+    test_contexts = contexts[val_test_split_index:]
+    # Split the true responses into train/val/test
+    train_true_responses = true_responses[:train_val_split_index]
+    val_true_responses = true_responses[train_val_split_index:val_test_split_index]
+    test_true_responses = true_responses[val_test_split_index:]
+    # Split the random responses into train/val/test
+    train_random_responses = random_responses[:train_val_split_index]
+    val_random_responses = random_responses[train_val_split_index:val_test_split_index]
+    test_random_responses = random_responses[val_test_split_index:]
 
-    ### Making sure no train dialogues is present in test or validation sets:
-    # print "\nmaking sure no train_context is in test or validation set..."
-    # for train_c in data['train']['c']:
-    #     assert train_c not in data['test']['c']
-    #     assert train_c not in data['val']['c']
-    # print "ok."
+    data = {
+        'train': {'c': [], 'r': [], 'y': []},
+        'val': {'c': [], 'r': [], 'y': [], 'id': []},
+        'test': {'c': [], 'r': [], 'y': [], 'id': []},
+    }
 
-    ###
-    # LOAD GENERATED DATA & ADD IT TO CURRENT DATA
-    ###
-    if args.inputs:
-        # Load training set contexts:
-        # train_bpe_contexts = train_contexts
-        # train_str_contexts = map(lambda c: indices2string(c, twitter_bpe_idx_to_str, twitter_bpe), train_bpe_contexts)
+    # add TRUE and RANDOM responses to the data train, validation, and test sets.
+    data['train']['c'].extend(train_contexts + train_contexts)
+    data['train']['r'].extend(train_true_responses + train_random_responses)
+    data['train']['y'].extend([1]*len(train_true_responses) + [0]*len(train_random_responses))
 
-        for response_file_name in args.inputs:
-            print "\nProcessing ", response_file_name, "..."
-            added_in_train = 0
-            added_in_val = 0
-            added_in_test = 0
-            generated_data = open(response_file_name, 'rb')
+    data['val']['c'].extend(val_contexts + val_contexts)
+    data['val']['r'].extend(val_true_responses + val_random_responses)
+    data['val']['y'].extend([1]*len(val_true_responses) + [0]*len(val_random_responses))
+    data['val']['id'].extend(['true']*len(val_true_responses) + ['rand']*len(val_random_responses))
 
-            # Get the responses
-            generated_str_responses = []
-            for line in generated_data:
-                generated_str_responses.append(line.replace('\n', ''))
+    data['test']['c'].extend(test_contexts + test_contexts)
+    data['test']['r'].extend(test_true_responses + test_random_responses)
+    data['test']['y'].extend([1]*len(test_true_responses) + [0]*len(test_random_responses))
+    data['test']['id'].extend(['true'] * len(test_true_responses) + ['rand'] * len(test_random_responses))
 
-            print "generated responses:", len(generated_str_responses)
-            print "contexts in training set:", len(train_contexts)
-            assert(len(generated_str_responses) == len(train_contexts))
+    # add GENERATED responses.
+    for model_name, generated_responses in model_responses.iteritems():
+        # Split the generated responses into train/val/test
+        train_generated_responses = generated_responses[:train_val_split_index]
+        val_generated_responses = generated_responses[train_val_split_index:val_test_split_index]
+        test_generated_responses = generated_responses[val_test_split_index:]
 
-            # Print the first few context/responses to check if some makes sense
-            # for i in range(15):
-            #     print train_bpe_contexts[i]
-            #     print ' =', train_str_contexts[i]
-            #     print generated_str_responses[i]
-            #     print ""
+        # add GENERATED responses (and TRUE responses for the training set to have 50/50 true and false responses)
+        data['train']['c'].extend(train_contexts + train_contexts)
+        data['train']['r'].extend(train_true_responses + train_generated_responses)
+        data['train']['y'].extend([1] * len(train_true_responses) + [0] * len(train_generated_responses))
 
-            generated_bpe_responses = map(lambda r: string2indices(r, twitter_bpe_str_to_idx, twitter_bpe), generated_str_responses)
+        data['val']['c'].extend(val_contexts)
+        data['val']['r'].extend(val_generated_responses)
+        data['val']['y'].extend([0] * len(val_generated_responses))
+        data['val']['id'].extend([model_name] * len(val_generated_responses))
 
-            for context, response in zip(train_contexts, generated_bpe_responses):
-                dict_index = getIndex(context, data)  # get the set in which that context is present (train, val, test)
-                if len(dict_index) <= 0:  # if not found, error
-                    print context, "not found."
-                    print "ERROR:", indices2string(context, twitter_bpe_idx_to_str, twitter_bpe), "not found.\n"
-                    continue  # skip the following lines: don't add this instance to the data
-                if len(dict_index) < 5:
-                    print "WARNING: train context found in ", dict_index
-                    # print context
-                    # print indices2string(context, twitter_bpe_idx_to_str, twitter_bpe), "\n"
-                data[dict_index]['c'].append(context)
-                data[dict_index]['r'].append(response)
-                data[dict_index]['y'].append(0)
-                if dict_index == 'train': added_in_train += 1
-                elif dict_index == 'val': added_in_val += 1
-                elif dict_index == 'test': added_in_test +=1
-                else: print "added instance to wrong set: ", dict_index
+        data['test']['c'].extend(test_contexts)
+        data['test']['r'].extend(test_generated_responses)
+        data['test']['y'].extend([0] * len(test_generated_responses))
+        data['test']['id'].extend([model_name] * len(test_generated_responses))
 
-            print "Finished processing file ", response_file_name
-            print "Added", added_in_train, "instances in train,", added_in_val, "instances in validation,", added_in_test, "instances in test set."
-            print 'New number of training examples: %d' % (len(train_data['c']))
-            print 'New number of validation examples: %d' % (len(val_data['c']))
-            print 'New number of testing examples: %d' % (len(test_data['c']))
+    # Making sure each context has a unique response, flag (and model_id for val & test sets)
+    assert len(data['train']['c']) == len(data['train']['r']) == len(data['train']['y'])
+    assert len(data['val']['c']) == len(data['val']['r']) == len(data['val']['y']) == len(data['val']['id'])
+    assert len(data['test']['c']) == len(data['test']['r']) == len(data['test']['y']) == len(data['test']['id'])
+
+    print "New dataset created!"
+    print 'New number of training examples: true+rand+(true+gen)*%d = %d' % (len(model_responses), len(data['train']['c']))
+    print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
+    print 'New number of testing examples: true+rand+gen*%d %d' % (len(model_responses), len(data['test']['c']))
 
     ###
     # SHUFFLE THE WHOLE TRAINING SET
@@ -344,7 +202,9 @@ def main():
         print "Saved."
 
     ###
-    # TODO: LEARN THE WORD EMBEDINGS! matrix W
+    # TODO: add random word embedings.
+    # W = (word embeddings, str_to_idx map)
+    # file name = W_twitter_bpe_rand.pkl
     ###
 
 

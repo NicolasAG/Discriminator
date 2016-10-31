@@ -504,6 +504,7 @@ class Model:
         self.set_shared_variables(dataset, index)
         return self.get_probas()[:,1]
 
+    # TODO: evaluation for each model id (ie: data['test']['id']) the accuracy of the discriminator
     def test(self):
         n_test_batches = len(self.data['test']['y']) // self.batch_size
         test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
