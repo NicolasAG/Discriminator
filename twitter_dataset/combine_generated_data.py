@@ -1,6 +1,7 @@
 import argparse
 import cPickle
 import random
+import numpy.random as np_rnd
 from datetime import datetime
 from apply_bpe import BPE
 
@@ -51,10 +52,10 @@ def process_dialogues(dialogues):
 def main():
     parser = argparse.ArgumentParser()
     parser.register('type', 'bool', lambda v: v.lower() in ("yes", "true", "t", "1"))
-    parser.add_argument('--data_dir', type=str, default='.', help='Input dir')
+    parser.add_argument('--data_dir', type=str, default='.', help='Input/Output directory to find original data and save new data')
     parser.add_argument('--inputs', nargs='+', type=str, required=True, help='File(s) of responses to be added')
-    parser.add_argument('--save_data', type='bool', default=True, help='Whether to save the new data')
-    parser.add_argument('--data_fname', type=str, default='dataset_twitter_bpe_indices.pkl', help='Destination of new data')
+    parser.add_argument('--data_fname', type=str, default='dataset_twitter_bpe.pkl', help='File name of new data')
+    parser.add_argument('--data_embeddings', type=str, default='W_twitter_bpe.pkl', help='File name of new data embeddings')
     args = parser.parse_args()
     print "args: ", args
 
@@ -193,19 +194,25 @@ def main():
 
     ###
     # SAVE THE RESULTING DATA
+    # .pkl will have (data[train], data[val], data[test])
     ###
-    if args.save_data:
-        print "\nSaving resulting dataset in ", args.data_fname, "..."
-        file = open(args.data_fname, 'wb')
-        cPickle.dump((data['train'], data['val'], data['test']), file, protocol=cPickle.HIGHEST_PROTOCOL)
-        file.close()
-        print "Saved."
+    print "\nSaving resulting dataset in ", args.data_dir, "/", args.data_fname, "..."
+    data_file = open("%s/%s" % (args.data_dir, args.data_fname), 'wb')
+    cPickle.dump((data['train'], data['val'], data['test']), data_file, protocol=cPickle.HIGHEST_PROTOCOL)
+    data_file.close()
+    print "Saved."
 
     ###
-    # TODO: add random word embedings.
-    # W = (word embeddings, str_to_idx map)
-    # file name = W_twitter_bpe_rand.pkl
+    # SAVE RANDOM WORD EMBEDDINGS
+    # .pkl will have (word embeddings, str_to_idx map)
     ###
+    print "\nSaving random word embeddings in ", args.data_dir, "/", args.data_embeddings, "..."
+    vocab_size = len(twitter_bpe_dict)
+    random_word_embeddings = np_rnd.random((vocab_size, 300))
+    w_file = open("%s/%s" % (args.data_dir, args.data_embeddings), 'wb')
+    cPickle.dump((random_word_embeddings, twitter_bpe_str_to_idx), w_file, protocol=cPickle.HIGHEST_PROTOCOL)
+    w_file.close()
+    print "Saved."
 
 
 if __name__ == '__main__':
