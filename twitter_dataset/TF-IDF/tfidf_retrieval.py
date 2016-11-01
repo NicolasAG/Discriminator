@@ -1,18 +1,7 @@
 import numpy as np
-import sys
-import csv
-import scipy
-import time
-import math
 import cPickle
 
-from scipy.spatial.distance import cosine
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics import *
-from sklearn.preprocessing import *
-
-# import os
-# os.sys.path.insert(0,'../TwitterData/BPE/subword_nmt')
 
 from apply_bpe import BPE
 
@@ -103,26 +92,6 @@ def mat_vector_2norm_squared(mat):
         norm_list.append(np.dot(mat[0], mat[0].T))
     return np.array(norm_list)
 
-def sanity_check(test_emb, train_emb, num_test):
-    '''
-    Sanity check on the cosine similarity calculations
-    Finds the closest vector in the space by brute force
-    '''
-    correct_list = []
-    for i in xrange(num_test):
-        smallest_norm = np.infty
-        index = 0
-        for j in xrange(len(train_emb)):
-            norm = np.linalg.norm(emb - test_emb[i])
-            if norm < smallest_norm:
-                smallest_norm = norm
-                index = j
-        correct_list.append(index)
-    # Pad the list to make it the same length as test_emb
-    for i in xrange(len(test_emb) - num_test):
-        correct_list.append(-1)
-    return correct_list
-
 
 def tfidf_retrieval(tfidf_vec, train_contexts_txt, train_responses_txt, output_file):
     # tfidf_vec = tfidf_vec.toarray()
@@ -150,6 +119,68 @@ def tfidf_retrieval(tfidf_vec, train_contexts_txt, train_responses_txt, output_f
         for response in response_list:
             f1.write(response)
     print "Saved."
+
+
+def tfidf_c(contexts_str, responses_str):
+    vec = TfidfVectorizer()
+    print "\nFitting vectorizer..."
+    tfidf_contexts = vec.fit_transform(contexts_str)
+    print "tfidf_contexts shape:", tfidf_contexts.shape
+    print "done."
+
+    hit = 0
+    preds = []
+    print "\nRetrieving responses based on tfidf_contexts..."
+    for i, context in enumerate(contexts_str):
+        if i % 10 == 0:
+            tfidf = vec.transform([context])
+            dot_products = tfidf * tfidf_contexts.T
+            dot_products = dot_products.toarray().T
+            idx = np.argmax(dot_products)
+            if idx == i / 10:
+                dot_products[idx] = 0
+                hit += 1
+                idx = np.argmax(dot_products)
+            preds.append(responses_str[idx])
+    print "done."
+    print "tfidf_c hit %d " % hit
+    print "Retrieved %d responses" % len(preds)
+    return preds
+
+
+def tfidf_r(contexts_str, responses_str):
+    vec = TfidfVectorizer()
+    print "\nFitting vectorizer..."
+    tfidf_responses = vec.fit_transform(responses_str)
+    print "tfidf_responses shape:", tfidf_responses.shape
+    print "done."
+
+    hit = 0
+    preds = []
+    print "\nRetrieving responses based on tfidf_responses..."
+    for i, context in enumerate(contexts_str):
+        tfidf = vec.transform([context])
+        dot_products = tfidf * tfidf_responses.T
+        dot_products = dot_products.toarray().T
+        idx = np.argmax(dot_products)
+        if idx == i / 10:
+            hit += 1
+            dot_products[idx] = 0
+            idx = np.argmax(dot_products)
+        preds.append(responses_str[idx])
+    print "done."
+    print "tfidf_r hit %d " % hit
+    print "Retrieved %d responses" % len(preds)
+    return preds
+
+
+def vecs_to_textfile(vecs, filename):
+    print "\nSaving results to %s" % filename
+    with open(filename, 'w') as f:
+        for vec in vecs:
+            f.write(vec + "\n")
+    print "done."
+
 
 if __name__ == '__main__':
     print "Loading Twitter data..."
@@ -188,7 +219,14 @@ if __name__ == '__main__':
     #val_responses_txt = idxs_to_bpestrs(val_responses, twitter_bpe, twitter_idx_to_str)
     #test_contexts_txt = idxs_to_strs(test_contexts, twitter_bpe, twitter_idx_to_str)
     #test_responses_txt = idxs_to_strs(test_responses, twitter_bpe, twitter_idx_to_str)
-    
+
+    c_pred = tfidf_c(train_contexts_txt, train_responses_txt)
+    r_pred = tfidf_r(train_contexts_txt, train_responses_txt)
+
+    vecs_to_textfile(c_pred, "./c_tfidf_responses.txt")
+    vecs_to_textfile(r_pred, "./r_tfidf_responses.txt")
+
+    '''
     print '\nFitting vectorizer...'
     vectorizer = TfidfVectorizer()
     vectorizer.fit(train_contexts_txt + train_responses_txt)
@@ -205,5 +243,6 @@ if __name__ == '__main__':
     print "\nRetrieving responses based on c_vec..."
     tfidf_retrieval(c_vec, train_contexts_txt, train_responses_txt, './ctfidf_responses.txt')
     print "done."
+    '''
 
 

@@ -150,6 +150,7 @@ class Model:
         l_mask = lasagne.layers.InputLayer(shape=(batch_size, max_seqlen))
 
         if encoder.find('cnn') > -1:
+            # Building a CNN model
             l_conv_in = lasagne.layers.ReshapeLayer(l_in, shape=(batch_size, 1, max_seqlen, embedding_size))
             conv_layers = []
             for filter_size in filter_sizes:
@@ -172,6 +173,7 @@ class Model:
 
         if is_bidirectional:
             if encoder.find('lstm') > -1:
+                # Building a bidirectional LSTM model:
                 prev_fwd, prev_bck = l_in, l_in
                 for _ in xrange(n_recurrent_layers):
                     l_fwd = lasagne.layers.LSTMLayer(prev_fwd,
@@ -193,6 +195,7 @@ class Model:
                                                      mask_input=l_mask)
                     prev_fwd, prev_bck = l_fwd, l_bck
             else:
+                # Building a bidirectional RNN model:
                 prev_fwd, prev_bck = l_in, l_in
                 for _ in xrange(n_recurrent_layers):
                     l_fwd = lasagne.layers.RecurrentLayer(prev_fwd,
@@ -220,9 +223,10 @@ class Model:
         else:
             prev_fwd = l_in
             if encoder.find('lstm') > -1:
+                # Building a LSTM model:
                 for _ in xrange(n_recurrent_layers):
-                    l_recurrent = lasagne.layers.LSTMLayer(prev_fwd,
-                                                           hidden_size,
+                    l_recurrent = lasagne.layers.LSTMLayer(incoming=prev_fwd,
+                                                           num_units=hidden_size,
                                                            grad_clipping=10,
                                                            forgetgate=lasagne.layers.Gate(b=lasagne.init.Constant(forget_gate_bias)),
                                                            backwards=False,
@@ -241,9 +245,10 @@ class Model:
                                                           mask_input=l_mask)
                     prev_fwd = l_recurrent
             else:
+                # Building a RNN model:
                 for _ in xrange(n_recurrent_layers):
-                    l_recurrent = lasagne.layers.RecurrentLayer(prev_fwd,
-                                                                hidden_size,
+                    l_recurrent = lasagne.layers.RecurrentLayer(incoming=prev_fwd,
+                                                                num_units=hidden_size,
                                                                 nonlinearity=lasagne.nonlinearities.tanh,
                                                                 W_hid_to_hid=lasagne.init.Orthogonal(),
                                                                 W_in_to_hid=lasagne.init.Orthogonal(),
@@ -351,7 +356,7 @@ class Model:
                     e_response_mean = T.mean(e_response, axis=0, keepdims=True)
                     e_context_centered = e_context - e_context_mean # (n, i)
                     e_response_centered = e_response - e_response_mean # (n, j)
-                    
+
                     outer_prod = (e_context_centered.dimshuffle(0, 1, 'x') *
                                   e_response_centered.dimshuffle(0, 'x', 1)) # (n, i, j)
                     xcov = T.sum(T.sqr(T.mean(outer_prod, axis=0)))
@@ -421,8 +426,9 @@ class Model:
         if self.fine_tune_M and not self.use_ntn:
             params += [self.M]
 
+
         total_params = sum([p.get_value().size for p in params])
-        print "  total_params: ", total_params
+        print "total_params: ", total_params
 
         if 'adam' == self.optimizer:
             updates = lasagne.updates.adam(loss_or_grads=self.cost, params=params, learning_rate=self.lr)
@@ -538,7 +544,7 @@ class Model:
             for minibatch_index in indices:
                 self.set_shared_variables(self.data['train'], minibatch_index)
                 cost_epoch = self.train_model()
-                # print "cost_epoch:", cost_epoch
+                # print "cost epoch:", cost_epoch
                 total_cost += cost_epoch
                 self.set_zero(self.zero_vec)
                 bar.update()
@@ -760,7 +766,6 @@ def main():
     print("data loaded!")
 
     data = { 'train' : train_data, 'val': val_data, 'test': test_data }
-    W = W.astype(theano.config.floatX)
 
     if args.sort_by_len:
         sort_by_len(data['train'])
@@ -769,7 +774,7 @@ def main():
     # model = Model(**args.__dict__)
     model = Model(
         data=data,
-        W=W,
+        W=W.astype(theano.config.floatX),
         max_seqlen=args.max_seqlen,
         hidden_size=args.hidden_size,
         batch_size=args.batch_size,

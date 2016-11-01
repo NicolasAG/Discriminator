@@ -2,8 +2,8 @@
 
 THEANO_FLAGS='floatX=float32,device=gpu0' python main.py \
     --encoder 'lstm' \
-    --batch_size 256 \
-    --hidden_size 300 \
+    --batch_size 512 \
+    --hidden_size 50 \
     --optimizer 'adam' \
     --lr 0.001 \
     --fine_tune_W True \
@@ -11,6 +11,10 @@ THEANO_FLAGS='floatX=float32,device=gpu0' python main.py \
     --input_dir './twitter_dataset' \
     --dataset_fname 'dataset_twitter_bpe.pkl' \
     --W_fname 'W_twitter_bpe.pkl' \
-    --n_epochs 10 \
-    --save_model True #\
-    # --train_examples 1000
+    --n_epochs 5 \
+    --save_model True
+
+# bf:
+# --batch_size 256 \
+# --hidden_size 300 \
+
