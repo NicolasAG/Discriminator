@@ -3,7 +3,7 @@
 THEANO_FLAGS='floatX=float32,device=gpu0' python main.py \
     --encoder 'lstm' \
     --batch_size 512 \
-    --hidden_size 50 \
+    --hidden_size 100 \
     --optimizer 'adam' \
     --lr 0.001 \
     --fine_tune_W True \
@@ -13,8 +13,4 @@ THEANO_FLAGS='floatX=float32,device=gpu0' python main.py \
     --W_fname 'W_twitter_bpe.pkl' \
     --n_epochs 5 \
     --save_model True
-
-# bf:
-# --batch_size 256 \
-# --hidden_size 300 \
 
