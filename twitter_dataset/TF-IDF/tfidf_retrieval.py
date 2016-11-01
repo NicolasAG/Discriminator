@@ -132,16 +132,15 @@ def tfidf_c(contexts_str, responses_str):
     preds = []
     print "\nRetrieving responses based on tfidf_contexts..."
     for i, context in enumerate(contexts_str):
-        if i % 10 == 0:
-            tfidf = vec.transform([context])
-            dot_products = tfidf * tfidf_contexts.T
-            dot_products = dot_products.toarray().T
-            idx = np.argmax(dot_products)
-            if idx == i / 10:
-                dot_products[idx] = 0
-                hit += 1
-                idx = np.argmax(dot_products)
-            preds.append(responses_str[idx])
+        tfidf = vec.transform([context])
+        dot_products = tfidf * tfidf_contexts.T
+        dot_products = dot_products.toarray().T
+        idx = np.argmax(dot_products)
+        if idx == i:  # if retrieved the actual TRUE response index, take the second best.
+            hit += 1
+            dot_products[idx] = 0  # set vector[i] to 0 so that it's not picked again.
+            idx = np.argmax(dot_products)  # take the second best.
+        preds.append(responses_str[idx])
     print "done."
     print "tfidf_c hit %d " % hit
     print "Retrieved %d responses" % len(preds)
@@ -163,10 +162,10 @@ def tfidf_r(contexts_str, responses_str):
         dot_products = tfidf * tfidf_responses.T
         dot_products = dot_products.toarray().T
         idx = np.argmax(dot_products)
-        if idx == i / 10:
+        if idx == i:  # if retrieved the actual TRUE response index, take the second best.
             hit += 1
-            dot_products[idx] = 0
-            idx = np.argmax(dot_products)
+            dot_products[idx] = 0  # set vector[i] to 0 so that it's not picked again.
+            idx = np.argmax(dot_products)  # take the second best.
         preds.append(responses_str[idx])
     print "done."
     print "tfidf_r hit %d " % hit
@@ -213,15 +212,18 @@ if __name__ == '__main__':
     #val_contexts, val_responses = process_dialogues(val_data)
     #test_contexts, test_responses = process_dialogues(test_data)
 
-    train_contexts_txt = idxs_to_bpestrs(train_contexts, twitter_bpe, twitter_idx_to_str)
-    train_responses_txt = idxs_to_bpestrs(train_responses, twitter_bpe, twitter_idx_to_str)
-    #val_contexts_txt = idxs_to_bpestrs(val_contexts, twitter_bpe, twitter_idx_to_str)
-    #val_responses_txt = idxs_to_bpestrs(val_responses, twitter_bpe, twitter_idx_to_str)
-    #test_contexts_txt = idxs_to_strs(test_contexts, twitter_bpe, twitter_idx_to_str)
-    #test_responses_txt = idxs_to_strs(test_responses, twitter_bpe, twitter_idx_to_str)
+    train_contexts_str = idxs_to_bpestrs(train_contexts, twitter_bpe, twitter_idx_to_str)
+    train_responses_str = idxs_to_bpestrs(train_responses, twitter_bpe, twitter_idx_to_str)
+    #val_contexts_str = idxs_to_bpestrs(val_contexts, twitter_bpe, twitter_idx_to_str)
+    #val_responses_str = idxs_to_bpestrs(val_responses, twitter_bpe, twitter_idx_to_str)
+    #test_contexts_str = idxs_to_strs(test_contexts, twitter_bpe, twitter_idx_to_str)
+    #test_responses_str = idxs_to_strs(test_responses, twitter_bpe, twitter_idx_to_str)
 
-    c_pred = tfidf_c(train_contexts_txt, train_responses_txt)
-    r_pred = tfidf_r(train_contexts_txt, train_responses_txt)
+    print "Number of contexts:", len(train_contexts_str)
+    print "Number of responses:", len(train_responses_str)
+
+    c_pred = tfidf_c(train_contexts_str, train_responses_str)
+    r_pred = tfidf_r(train_contexts_str, train_responses_str)
 
     vecs_to_textfile(c_pred, "./c_tfidf_responses.txt")
     vecs_to_textfile(r_pred, "./r_tfidf_responses.txt")
