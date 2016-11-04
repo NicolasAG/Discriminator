@@ -44,8 +44,10 @@ def process_dialogues(dialogues):
         d_proc = d[:-3]
         index_list = [i for i, j in enumerate(d_proc) if j == 1]
         split = index_list[-1] + 1
-        contexts.append(d_proc[:split])
-        responses.append(d_proc[split:]+[1])
+        context = filter(lambda idx: idx!=1, d_proc[:split])  # remove </s> from context
+        contexts.append(context)
+        response = filter(lambda idx: idx!=1, d_proc[split:])  # remove </s> from response
+        responses.append(response)
     return contexts, responses
 
 
@@ -149,6 +151,8 @@ def main():
     data['test']['y'].extend([1]*len(test_true_responses) + [0]*len(test_random_responses))
     data['test']['id'].extend(['true'] * len(test_true_responses) + ['rand'] * len(test_random_responses))
 
+    oversampling = True
+
     # add GENERATED responses.
     for model_name, generated_responses in model_responses.iteritems():
         # Split the generated responses into train/val/test
@@ -157,9 +161,14 @@ def main():
         test_generated_responses = generated_responses[val_test_split_index:]
 
         # add GENERATED responses (and TRUE responses for the training set to have 50/50 true and false responses)
-        data['train']['c'].extend(train_contexts + train_contexts)
-        data['train']['r'].extend(train_true_responses + train_generated_responses)
-        data['train']['y'].extend([1] * len(train_true_responses) + [0] * len(train_generated_responses))
+        if oversampling:
+            data['train']['c'].extend(train_contexts + train_contexts)
+            data['train']['r'].extend(train_true_responses + train_generated_responses)
+            data['train']['y'].extend([1] * len(train_true_responses) + [0] * len(train_generated_responses))
+        else:
+            data['train']['c'].extend(train_contexts)
+            data['train']['r'].extend(train_generated_responses)
+            data['train']['y'].extend([0] * len(train_generated_responses))
 
         data['val']['c'].extend(val_contexts)
         data['val']['r'].extend(val_generated_responses)
@@ -196,7 +205,7 @@ def main():
     # SAVE THE RESULTING DATA
     # .pkl will have (data[train], data[val], data[test])
     ###
-    print "\nSaving resulting dataset in ", args.data_dir, "/", args.data_fname, "..."
+    print "\nSaving resulting dataset in %s/%s..." % (args.data_dir, args.data_fname)
     data_file = open("%s/%s" % (args.data_dir, args.data_fname), 'wb')
     cPickle.dump((data['train'], data['val'], data['test']), data_file, protocol=cPickle.HIGHEST_PROTOCOL)
     data_file.close()
@@ -206,7 +215,7 @@ def main():
     # SAVE RANDOM WORD EMBEDDINGS
     # .pkl will have (word embeddings, str_to_idx map)
     ###
-    print "\nSaving random word embeddings in ", args.data_dir, "/", args.data_embeddings, "..."
+    print "\nSaving random word embeddings in %s/%s..." % (args.data_dir, args.data_embeddings)
     vocab_size = len(twitter_bpe_dict)
     random_word_embeddings = np_rnd.random((vocab_size, 300))
     w_file = open("%s/%s" % (args.data_dir, args.data_embeddings), 'wb')
