@@ -132,11 +132,17 @@ def tfidf_c(contexts_str, responses_str):
     preds = []
     print "\nRetrieving responses based on tfidf_contexts..."
     for i, context in enumerate(contexts_str):
+        print "%d / %d" % (i, len(contexts_str))
         tfidf = vec.transform([context])
+        print "  tfidf shape:", tfidf.shape
         dot_products = tfidf * tfidf_contexts.T
+        print "  dot_products shape:", dot_products.shape
         dot_products = dot_products.toarray().T
+        print "  dot_products shape:", dot_products.shape
         idx = np.argmax(dot_products)
+        print " idx =", idx
         if idx == i:  # if retrieved the actual TRUE response index, take the second best.
+            print "   HIT! take second best..."
             hit += 1
             dot_products[idx] = 0  # set vector[i] to 0 so that it's not picked again.
             idx = np.argmax(dot_products)  # take the second best.
@@ -158,11 +164,17 @@ def tfidf_r(contexts_str, responses_str):
     preds = []
     print "\nRetrieving responses based on tfidf_responses..."
     for i, context in enumerate(contexts_str):
+        print "%d / %d" % (i, len(contexts_str))
         tfidf = vec.transform([context])
+        print "  tfidf shape:", tfidf.shape
         dot_products = tfidf * tfidf_responses.T
+        print "  dot_products shape:", dot_products.shape
         dot_products = dot_products.toarray().T
+        print "  dot_products shape:", dot_products.shape
         idx = np.argmax(dot_products)
+        print " idx =", idx
         if idx == i:  # if retrieved the actual TRUE response index, take the second best.
+            print "   HIT! take second best..."
             hit += 1
             dot_products[idx] = 0  # set vector[i] to 0 so that it's not picked again.
             idx = np.argmax(dot_products)  # take the second best.
@@ -223,9 +235,9 @@ if __name__ == '__main__':
     print "Number of responses:", len(train_responses_str)
 
     c_pred = tfidf_c(train_contexts_str, train_responses_str)
-    r_pred = tfidf_r(train_contexts_str, train_responses_str)
-
     vecs_to_textfile(c_pred, "./c_tfidf_responses.txt")
+
+    r_pred = tfidf_r(train_contexts_str, train_responses_str)
     vecs_to_textfile(r_pred, "./r_tfidf_responses.txt")
 
     '''
