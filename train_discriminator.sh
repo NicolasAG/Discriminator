@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-THEANO_FLAGS='floatX=float32,device=gpu0' python main.py \
+THEANO_FLAGS='floatX=float32,device=gpu2' python main.py \
     --encoder 'lstm' \
     --batch_size 512 \
-    --hidden_size 200 \
+    --hidden_size 50 \
     --optimizer 'adam' \
     --lr 0.001 \
     --fine_tune_W True \

@@ -58,6 +58,8 @@ def main():
     parser.add_argument('--inputs', nargs='+', type=str, required=True, help='File(s) of responses to be added')
     parser.add_argument('--data_fname', type=str, default='dataset_twitter_bpe.pkl', help='File name of new data')
     parser.add_argument('--data_embeddings', type=str, default='W_twitter_bpe.pkl', help='File name of new data embeddings')
+    parser.add_argument('--random_model', type=bool, default=False, help='Flag to add a random retrieval model as part of the new data')
+    parser.add_argument('--oversampling', type=bool, default=True, help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
     args = parser.parse_args()
     print "args: ", args
 
@@ -68,11 +70,6 @@ def main():
     dialogues = cPickle.load(open('%s/BPE/Train.dialogues.pkl' % args.data_dir, 'rb'))
     # get the list of contexts, and the list of TRUE responses.
     contexts, true_responses = process_dialogues(dialogues)
-    # get the list of RANDOM responses.
-    random_responses = true_responses
-    random.shuffle(random_responses)
-
-    assert len(contexts) == len(true_responses) == len(random_responses)  # == len(other generated models)...
 
     ###
     # LOAD BPE DICTIONARIES: map bpe_indices/bpe_words - vocab ~ 5,000
@@ -125,10 +122,6 @@ def main():
     train_true_responses = true_responses[:train_val_split_index]
     val_true_responses = true_responses[train_val_split_index:val_test_split_index]
     test_true_responses = true_responses[val_test_split_index:]
-    # Split the random responses into train/val/test
-    train_random_responses = random_responses[:train_val_split_index]
-    val_random_responses = random_responses[train_val_split_index:val_test_split_index]
-    test_random_responses = random_responses[val_test_split_index:]
 
     data = {
         'train': {'c': [], 'r': [], 'y': []},
@@ -136,22 +129,46 @@ def main():
         'test': {'c': [], 'r': [], 'y': [], 'id': []},
     }
 
-    # add TRUE and RANDOM responses to the data train, validation, and test sets.
-    data['train']['c'].extend(train_contexts + train_contexts)
-    data['train']['r'].extend(train_true_responses + train_random_responses)
-    data['train']['y'].extend([1]*len(train_true_responses) + [0]*len(train_random_responses))
+    # add TRUE responses to the data train, validation, and test sets.
+    data['train']['c'].extend(train_contexts)
+    data['train']['r'].extend(train_true_responses)
+    data['train']['y'].extend([1] * len(train_true_responses))
 
-    data['val']['c'].extend(val_contexts + val_contexts)
-    data['val']['r'].extend(val_true_responses + val_random_responses)
-    data['val']['y'].extend([1]*len(val_true_responses) + [0]*len(val_random_responses))
-    data['val']['id'].extend(['true']*len(val_true_responses) + ['rand']*len(val_random_responses))
+    data['val']['c'].extend(val_contexts)
+    data['val']['r'].extend(val_true_responses)
+    data['val']['y'].extend([1] * len(val_true_responses))
+    data['val']['id'].extend(['true'] * len(val_true_responses))
 
-    data['test']['c'].extend(test_contexts + test_contexts)
-    data['test']['r'].extend(test_true_responses + test_random_responses)
-    data['test']['y'].extend([1]*len(test_true_responses) + [0]*len(test_random_responses))
-    data['test']['id'].extend(['true'] * len(test_true_responses) + ['rand'] * len(test_random_responses))
+    data['test']['c'].extend(test_contexts)
+    data['test']['r'].extend(test_true_responses)
+    data['test']['y'].extend([1] * len(test_true_responses))
+    data['test']['id'].extend(['true'] * len(test_true_responses))
 
-    oversampling = True
+    if args.random_model:
+        # get the list of RANDOM responses.
+        random_responses = true_responses
+        random.shuffle(random_responses)
+        assert len(contexts) == len(true_responses) == len(random_responses)
+
+        # Split the random responses into train/val/test
+        train_random_responses = random_responses[:train_val_split_index]
+        val_random_responses = random_responses[train_val_split_index:val_test_split_index]
+        test_random_responses = random_responses[val_test_split_index:]
+
+        # add RANDOM responses to the data train, validation, and test sets.
+        data['train']['c'].extend(train_contexts)
+        data['train']['r'].extend(train_random_responses)
+        data['train']['y'].extend([0] * len(train_random_responses))
+
+        data['val']['c'].extend(val_contexts)
+        data['val']['r'].extend(val_random_responses)
+        data['val']['y'].extend([0] * len(val_random_responses))
+        data['val']['id'].extend(['rand'] * len(val_random_responses))
+
+        data['test']['c'].extend(test_contexts)
+        data['test']['r'].extend(test_random_responses)
+        data['test']['y'].extend([0] * len(test_random_responses))
+        data['test']['id'].extend(['rand'] * len(test_random_responses))
 
     # add GENERATED responses.
     for model_name, generated_responses in model_responses.iteritems():
@@ -161,14 +178,9 @@ def main():
         test_generated_responses = generated_responses[val_test_split_index:]
 
         # add GENERATED responses (and TRUE responses for the training set to have 50/50 true and false responses)
-        if oversampling:
-            data['train']['c'].extend(train_contexts + train_contexts)
-            data['train']['r'].extend(train_true_responses + train_generated_responses)
-            data['train']['y'].extend([1] * len(train_true_responses) + [0] * len(train_generated_responses))
-        else:
-            data['train']['c'].extend(train_contexts)
-            data['train']['r'].extend(train_generated_responses)
-            data['train']['y'].extend([0] * len(train_generated_responses))
+        data['train']['c'].extend(train_contexts)
+        data['train']['r'].extend(train_generated_responses)
+        data['train']['y'].extend([0] * len(train_generated_responses))
 
         data['val']['c'].extend(val_contexts)
         data['val']['r'].extend(val_generated_responses)
@@ -180,15 +192,41 @@ def main():
         data['test']['y'].extend([0] * len(test_generated_responses))
         data['test']['id'].extend([model_name] * len(test_generated_responses))
 
+    if args.oversampling:
+        # get the number of models with negative examples.
+        false_response_models = len(model_responses)
+        if args.random_model:
+            false_response_models += 1
+
+        # over sample by adding the same amount of true examples (-1 bcs already added true examples once)
+        data['train']['c'].extend(train_contexts * (false_response_models-1))
+        data['train']['r'].extend(train_true_responses * (false_response_models-1))
+        data['train']['y'].extend([1] * len(train_true_responses) * (false_response_models-1))
+        # making sure we have same amount of true and false responses.
+        assert len(filter(lambda flag: flag==0, data['train']['y'])) == len(filter(lambda flag: flag==1, data['train']['y']))
+
     # Making sure each context has a unique response, flag (and model_id for val & test sets)
     assert len(data['train']['c']) == len(data['train']['r']) == len(data['train']['y'])
     assert len(data['val']['c']) == len(data['val']['r']) == len(data['val']['y']) == len(data['val']['id'])
     assert len(data['test']['c']) == len(data['test']['r']) == len(data['test']['y']) == len(data['test']['id'])
 
     print "New dataset created!"
-    print 'New number of training examples: true+rand+(true+gen)*%d = %d' % (len(model_responses), len(data['train']['c']))
-    print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-    print 'New number of testing examples: true+rand+gen*%d %d' % (len(model_responses), len(data['test']['c']))
+    if args.random_model and args.oversampling:
+        print 'New number of training examples: true+rand+(true+gen)*%d = %d' % (len(model_responses), len(data['train']['c']))
+        print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
+        print 'New number of testing examples: true+rand+gen*%d %d' % (len(model_responses), len(data['test']['c']))
+    elif args.oversampling:
+        print 'New number of training examples: true*%d+gen*%d = %d' % (len(model_responses), len(model_responses), len(data['train']['c']))
+        print 'New number of validation examples: true+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
+        print 'New number of testing examples: true+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
+    elif args.random_model:
+        print 'New number of training examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['train']['c']))
+        print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
+        print 'New number of testing examples: true+rand+gen*%d %d' % (len(model_responses), len(data['test']['c']))
+    else:
+        print 'New number of training examples: true+gen*%d = %d' % (len(model_responses), len(data['train']['c']))
+        print 'New number of validation examples: true+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
+        print 'New number of testing examples: true+gen*%d %d' % (len(model_responses), len(data['test']['c']))
 
     ###
     # SHUFFLE THE WHOLE TRAINING SET

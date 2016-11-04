@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-THEANO_FLAGS='floatX=float32,device=gpu0' python main_with-eval.py \
+THEANO_FLAGS='floatX=float32,device=gpu2' python main_with-eval.py \
     --encoder 'lstm' \
     --batch_size 512 \
     --hidden_size 50 \
