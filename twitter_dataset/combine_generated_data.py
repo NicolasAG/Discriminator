@@ -1,6 +1,7 @@
 import argparse
 import cPickle
 import random
+import copy
 import numpy.random as np_rnd
 from datetime import datetime
 from apply_bpe import BPE
@@ -58,7 +59,7 @@ def main():
     parser.add_argument('--inputs', nargs='+', type=str, required=True, help='File(s) of responses to be added')
     parser.add_argument('--data_fname', type=str, default='dataset_twitter_bpe.pkl', help='File name of new data')
     parser.add_argument('--data_embeddings', type=str, default='W_twitter_bpe.pkl', help='File name of new data embeddings')
-    parser.add_argument('--random_model', type=bool, default=False, help='Flag to add a random retrieval model as part of the new data')
+    parser.add_argument('--random_model', type=bool, default=True, help='Flag to add a random retrieval model as part of the new data')
     parser.add_argument('--oversampling', type=bool, default=True, help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
     args = parser.parse_args()
     print "args: ", args
@@ -94,6 +95,7 @@ def main():
         # Get the responses
         generated_str_responses = []
         for line in generated_data:
+            line = line.replace(' </s>\n', '')
             generated_str_responses.append(line.replace('\n', ''))
 
         generated_bpe_responses = map(lambda r: string2indices(r, twitter_bpe_str_to_idx, twitter_bpe), generated_str_responses)
@@ -146,7 +148,7 @@ def main():
 
     if args.random_model:
         # get the list of RANDOM responses.
-        random_responses = true_responses
+        random_responses = copy.deepcopy(true_responses)
         random.shuffle(random_responses)
         assert len(contexts) == len(true_responses) == len(random_responses)
 

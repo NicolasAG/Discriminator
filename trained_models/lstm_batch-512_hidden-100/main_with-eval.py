@@ -510,40 +510,42 @@ class Model:
         self.set_shared_variables(dataset, index)
         return self.get_probas()[:,1]
 
+    def compute_performace_models(self, scope):
+        """
+        Measure the accuracy of the current Discriminator on each models in a scope.
+        :param scope: either "train", "val" or "test" sets.
+        :return: output the accuracy of the discriminator for each models.
+        """
+        assert scope in ["train", "val", "test"]
+
+        data_models = {}
+        for idx, model_name in enumerate(self.data[scope]['id']):
+            if model_name not in data_models:
+                data_models[model_name] = {'c': [], 'r': [], 'y': []}
+            data_models[model_name]['c'].append(self.data[scope]['c'][idx])
+            data_models[model_name]['r'].append(self.data[scope]['r'][idx])
+            data_models[model_name]['y'].append(self.data[scope]['y'][idx])
+
+        for model_name, data in data_models.iteritems():
+            print "evaluating", model_name
+            n_batches = len(data['y']) // self.batch_size
+            # Compute SCOPE performance:
+            losses = [self.compute_loss(data, i) for i in xrange(n_batches)]
+            perf = 1 - np.sum(losses) / len(data['y'])
+            print '%s_perf: %f' % (scope, perf * 100)
+
     def test(self):
         n_test_batches = len(self.data['test']['y']) // self.batch_size
         # Compute TEST performance:
         test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
         test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])
         print 'test_perf: %f' % (test_perf*100)
-        # Compute TEST recalls:
-        test_probas = np.concatenate([self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)])
-        self.compute_recall_ks(test_probas)
-
         # evaluation for each model id in data['test']['id']
-        test_data_models = {}
-        for idx, model_name in enumerate(self.data['test']['id']):
-            if model_name not in test_data_models:
-                test_data_models[model_name] = {'c': [], 'r': [], 'y': []}
-            test_data_models[model_name]['c'].append(self.data['test']['c'][idx])
-            test_data_models[model_name]['r'].append(self.data['test']['r'][idx])
-            test_data_models[model_name]['y'].append(self.data['test']['y'][idx])
-
-        for model_name, data in test_data_models.iteritems():
-            print "evaluating", model_name
-            n_test_batches = len(data['y']) // self.batch_size
-            # Compute TEST performance:
-            test_losses = [self.compute_loss(data, i) for i in xrange(n_test_batches)]
-            test_perf = 1 - np.sum(test_losses) / len(data['y'])
-            print 'test_perf: %f' % (test_perf*100)
-            # Compute TEST recalls:
-            test_probas = np.concatenate([self.compute_probas(data, i) for i in xrange(n_test_batches)])
-            self.compute_recall_ks(test_probas)
+        self.compute_performace_models("test")
 
     def train(self, n_epochs=100, shuffle_batch=False):
         epoch = 0
         best_val_perf = 0
-        best_val_rk1 = 0
         test_perf = 0
         test_probas = None
 
@@ -576,28 +578,27 @@ class Model:
             # Compute TRAIN performance:
             train_losses = [self.compute_loss(self.data['train'], i) for i in xrange(n_train_batches)]
             train_perf = 1 - np.sum(train_losses) / len(self.data['train']['y'])
+            print "epoch %i, train perf %f" % (epoch, train_perf*100)
+            # evaluation for each model id in data['train']['id']
+            self.compute_performace_models("train")
+
             # Compute VALIDATION performance:
             val_losses = [self.compute_loss(self.data['val'], i) for i in xrange(n_val_batches)]
             val_perf = 1 - np.sum(val_losses) / len(self.data['val']['y'])
-            print 'epoch %i, train_perf %f, val_perf %f' % (epoch, train_perf*100, val_perf*100)
-            # Compute VALIDATION recalls:
-            val_probas = np.concatenate([self.compute_probas(self.data['val'], i) for i in xrange(n_val_batches)])
-            print "\nValidation recalls:"
-            val_recall_k = self.compute_recall_ks(val_probas)
+            print 'epoch %i, val_perf %f' % (epoch, val_perf*100)
+            # evaluation for each model id in data['val']['id']
+            self.compute_performace_models("val")
 
             # If doing better on validation set:
-            if val_perf > best_val_perf or val_recall_k[10][1] > best_val_rk1:
+            if val_perf > best_val_perf:
                 print "\nImproved validation score!"
                 best_val_perf = val_perf
-                best_val_rk1 = val_recall_k[10][1]
                 # Compute TEST performance:
                 test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
                 test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])
-                print 'test_perf: %f' % (test_perf*100)
-                # Compute TEST recalls:
-                test_probas = np.concatenate([self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)])
-                print "\nTest recalls:"
-                self.compute_recall_ks(test_probas)
+                print 'epoch %i, test_perf %f' % (epoch, test_perf*100)
+                # evaluation for each model id in data['test']['id']
+                self.compute_performace_models("test")
 
                 # Save current best model parameters.
                 print "\nSaving current model parameters..."

@@ -6,7 +6,6 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from apply_bpe import BPE
 
 
-
 def preprocess_tweet(s):
     s = s.replace('@user', '<at>').replace('&lt;heart&gt;', '<heart>').replace('&lt;number&gt;', '<number>').replace('  ', ' </s> ').replace('  ', ' ')
     # Make sure we end with </s> token
@@ -43,20 +42,20 @@ def idxs_to_strs(data, bpe, idx_to_str):
     ''' Converts from BPE form to strings '''
     out = []
     for row in data:
-        out.append(' '.join([idx_to_str[idx] for idx in row if idx in idx_to_str]).replace('@@ ',''))
+        out.append(' '.join([idx_to_str[idx] for idx in row if idx in idx_to_str]).replace(bpe.separator+' ',''))
     return out
 
-def idxs_to_bpestrs(data, bpe, idx_to_str):
+def idxs_to_bpestrs(data, idx_to_str):
     ''' Converts from BPE form to strings '''
     out = []
     for row in data:
         out.append(' '.join([idx_to_str[idx] for idx in row if idx in idx_to_str]))
     return out
 
-def bpestrs_to_strs(data):
+def bpestrs_to_strs(data, bpe):
     out = []
     for row in data:
-        out.append(row.replace('@@ ',''))
+        out.append(row.replace(bpe.separator+' ',''))
     return out
 
 def flatten_list(l1):
@@ -224,10 +223,10 @@ if __name__ == '__main__':
     #val_contexts, val_responses = process_dialogues(val_data)
     #test_contexts, test_responses = process_dialogues(test_data)
 
-    train_contexts_str = idxs_to_bpestrs(train_contexts, twitter_bpe, twitter_idx_to_str)
-    train_responses_str = idxs_to_bpestrs(train_responses, twitter_bpe, twitter_idx_to_str)
-    #val_contexts_str = idxs_to_bpestrs(val_contexts, twitter_bpe, twitter_idx_to_str)
-    #val_responses_str = idxs_to_bpestrs(val_responses, twitter_bpe, twitter_idx_to_str)
+    train_contexts_str = idxs_to_strs(train_contexts, twitter_bpe, twitter_idx_to_str)
+    train_responses_str = idxs_to_strs(train_responses, twitter_bpe, twitter_idx_to_str)
+    #val_contexts_str = idxs_to_strs(val_contexts, twitter_bpe, twitter_idx_to_str)
+    #val_responses_str = idxs_to_strs(val_responses, twitter_bpe, twitter_idx_to_str)
     #test_contexts_str = idxs_to_strs(test_contexts, twitter_bpe, twitter_idx_to_str)
     #test_responses_str = idxs_to_strs(test_responses, twitter_bpe, twitter_idx_to_str)
 
