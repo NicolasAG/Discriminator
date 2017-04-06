@@ -120,7 +120,6 @@ class Model:
             self.orig_embeddings = theano.shared(W.copy(), name='orig_embeddings', borrow=True)
         self.encoder = encoder
 
-        index = T.iscalar()
         c = T.imatrix('c')
         r = T.imatrix('r')
         y = T.ivector('y')
@@ -370,7 +369,7 @@ class Model:
             dp = self.f(dp).dot(self.U)
         else:
             dp = T.batched_dot(e_context, T.dot(e_response, self.M.T))
-        #dp = pp('dp')(dp)
+
         o = T.nnet.sigmoid(dp)
         o = T.clip(o, 1e-7, 1.0-1e-7)
 
@@ -426,7 +425,6 @@ class Model:
         if self.fine_tune_M and not self.use_ntn:
             params += [self.M]
 
-
         total_params = sum([p.get_value().size for p in params])
         print "total_params: ", total_params
 
@@ -478,21 +476,34 @@ class Model:
             allow_input_downcast=True
         )
 
-    def get_batch(self, dataset, index, max_l):
-        seqlen = np.zeros((self.batch_size,), dtype=np.int32)
-        mask = np.zeros((self.batch_size,max_l), dtype=theano.config.floatX)
-        batch = np.zeros((self.batch_size, max_l), dtype=np.int32)
-        data = dataset[index*self.batch_size:(index+1)*self.batch_size]
-        for i,row in enumerate(data):
-            row = row[:max_l]
-            batch[i,0:len(row)] = row
-            seqlen[i] = len(row)-1
-            mask[i,0:len(row)] = 1
-        return batch, seqlen, mask
-
     def set_shared_variables(self, dataset, index):
-        c, c_seqlen, c_mask = self.get_batch(dataset['c'], index, self.max_seqlen)
-        r, r_seqlen, r_mask = self.get_batch(dataset['r'], index, self.max_seqlen)
+        """
+        Set shared variables for that batch index.
+        Set context and response: value, mask and length
+        :param dataset: dictionary of contexts, responses, and flags
+        :param index: batch index to work on
+        :return: None
+        """
+        def get_batch(dataset, index):
+            """
+            Get description of the data at a given batch index.
+            :param dataset: array of tokens (can represent either contexts or responses)
+            :param index: current index of the batch
+            :return: batch data, sequence length for each element in batch, mask for each element in batch
+            """
+            seqlen = np.zeros((self.batch_size,), dtype=np.int32)
+            mask = np.zeros((self.batch_size, self.max_seqlen), dtype=theano.config.floatX)
+            batch = np.zeros((self.batch_size, self.max_seqlen), dtype=np.int32)
+            data = dataset[index * self.batch_size:(index + 1) * self.batch_size]
+            for i, row in enumerate(data):
+                row = row[:self.max_seqlen]  # cut the sequence if longer than max_seqlen
+                batch[i, 0:len(row)] = row  # put the data into our batch
+                seqlen[i] = len(row) - 1  # max index for that batch element
+                mask[i, 0:len(row)] = 1  # put a '1' on the sequence, 0 else where
+            return batch, seqlen, mask
+
+        c, c_seqlen, c_mask = get_batch(dataset['c'], index)
+        r, r_seqlen, r_mask = get_batch(dataset['r'], index)
         y = np.array(dataset['y'][index*self.batch_size:(index+1)*self.batch_size], dtype=np.int32)
         self.shared_data['c'].set_value(c)
         self.shared_data['r'].set_value(r)
@@ -510,95 +521,129 @@ class Model:
         self.set_shared_variables(dataset, index)
         return self.get_probas()[:,1]
 
-    def compute_performace_models(self, scope):
+    def compute_performance_models(self, scope):
         """
-        Measure the accuracy of the current Discriminator on each models in a scope.
+        Measure the accuracy of the current Discriminator on each dialogue model.
         :param scope: either "train", "val" or "test" sets.
-        :return: output the accuracy of the discriminator for each models.
+        :return: output the accuracy of the discriminator for each model.
         """
         assert scope in ["train", "val", "test"]
 
-        data_models = {}
-        for idx, model_name in enumerate(self.data[scope]['id']):
-            if model_name not in data_models:
-                data_models[model_name] = {'c': [], 'r': [], 'y': []}
-            data_models[model_name]['c'].append(self.data[scope]['c'][idx])
-            data_models[model_name]['r'].append(self.data[scope]['r'][idx])
-            data_models[model_name]['y'].append(self.data[scope]['y'][idx])
+        # Reformat data to get: scope --> <dialogue_model_name> : {'c':[], 'r':[], 'y':[]}
+        if not hasattr(self, 'data_by_models'):
+            self.data_by_models = {}
+        if scope not in self.data_by_models:
+            self.data_by_models[scope] = {}
+        # If we are missing any model_name for this scope, check which one is it and add it to the data
+        missing_models = [name for name in self.data[scope]['id'] if name not in self.data_by_models[scope]]
+        if len(missing_models) > 0:
+            # make sure we have all model_name in the data
+            for idx, model_name in enumerate(self.data[scope]['id']):
+                # add data to the missing model_name only
+                if model_name in missing_models:
+                    if model_name not in self.data_by_models[scope]:
+                        self.data_by_models[scope][model_name] = {'c': [], 'r': [], 'y': []}
+                    self.data_by_models[scope][model_name]['c'].append(self.data[scope]['c'][idx])
+                    self.data_by_models[scope][model_name]['r'].append(self.data[scope]['r'][idx])
+                    self.data_by_models[scope][model_name]['y'].append(self.data[scope]['y'][idx])
 
-        for model_name, data in data_models.iteritems():
+        for model_name, data in self.data_by_models[scope].iteritems():
             print "evaluating", model_name
             n_batches = len(data['y']) // self.batch_size
-            # Compute SCOPE performance:
+            # Compute performance:
             losses = [self.compute_loss(data, i) for i in xrange(n_batches)]
             perf = 1 - np.sum(losses) / len(data['y'])
             print '%s_perf: %f' % (scope, perf * 100)
 
     def test(self):
+        """
+        Compute performances on test set
+        :return: None
+        """
         n_test_batches = len(self.data['test']['y']) // self.batch_size
         # Compute TEST performance:
         test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
         test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])
-        print 'test_perf: %f' % (test_perf*100)
+        print 'test_perf: %f' % (test_perf * 100)
         # evaluation for each model id in data['test']['id']
-        self.compute_performace_models("test")
+        self.compute_performance_models("test")
 
-    def train(self, n_epochs=100, shuffle_batch=False):
-        epoch = 0
-        best_val_perf = 0
-        test_perf = 0
-        test_probas = None
+    def train(self, n_epochs=100, verbose=False):
+        """
+        Train the model
+        :param n_epochs: number of training epochs to perform
+        :return: test performance and test probabilities
+        """
+        epoch = 0           # keep track of number of epochs we ran
+        best_val_perf = 0   # keep track of best validation score
+        test_perf = 0       # keep track of current test score
+        test_probas = None  # keep track of current best probabilities
 
         n_train_batches = len(self.data['train']['y']) // self.batch_size
         n_val_batches = len(self.data['val']['y']) // self.batch_size
         n_test_batches = len(self.data['test']['y']) // self.batch_size
 
+        ######################
+        # MAIN TRAINING LOOP #
+        ######################
         while (epoch < n_epochs):
             epoch += 1
-            indices = range(n_train_batches)
+            indices = range(n_train_batches)  # list of batch indices to train on (1 batch at a time)
 
-            if shuffle_batch:
-                indices = np.random.permutation(indices)
+            bar = pyprind.ProgBar(len(indices), monitor=True)  # show a progression bar on the screen
 
-            bar = pyprind.ProgBar(len(indices), monitor=True)
-            total_cost = 0
+            total_cost = 0  # keep track of training cost
             start_time = time.time()
 
+            ############################
+            # Loop through all batches #
+            ############################
             for minibatch_index in indices:
+                # Set context, response, flag, mask, and other variables for that batch index
                 self.set_shared_variables(self.data['train'], minibatch_index)
+                # Train model on this current batch
                 cost_epoch = self.train_model()
-                # print "cost epoch:", cost_epoch
+                if verbose: print "cost epoch:", cost_epoch
                 total_cost += cost_epoch
-                self.set_zero(self.zero_vec)
+                self.set_zero(self.zero_vec)  # TODO: check what this does?
                 bar.update()
+            ### we trained the model on all the data once! ###
 
             end_time = time.time()
-            print "cost: ", (total_cost / len(indices)), " took: %d(s)" % (end_time - start_time)
+            print "average training batch cost: ", (total_cost / len(indices)), " took: %d(s)" % (end_time - start_time)
 
+            ###
             # Compute TRAIN performance:
+            ###
             train_losses = [self.compute_loss(self.data['train'], i) for i in xrange(n_train_batches)]
             train_perf = 1 - np.sum(train_losses) / len(self.data['train']['y'])
             print "epoch %i, train perf %f" % (epoch, train_perf*100)
             # evaluation for each model id in data['train']['id']
-            self.compute_performace_models("train")
+            self.compute_performance_models("train")
 
+            ###
             # Compute VALIDATION performance:
+            ###
             val_losses = [self.compute_loss(self.data['val'], i) for i in xrange(n_val_batches)]
             val_perf = 1 - np.sum(val_losses) / len(self.data['val']['y'])
             print 'epoch %i, val_perf %f' % (epoch, val_perf*100)
             # evaluation for each model id in data['val']['id']
-            self.compute_performace_models("val")
+            self.compute_performance_models("val")
 
-            # If doing better on validation set:
+            ###
+            # If doing better on validation set, measure test performance and same model parameters!
+            ###
             if val_perf > best_val_perf:
                 print "\nImproved validation score!"
                 best_val_perf = val_perf
+
                 # Compute TEST performance:
                 test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
+                test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]
                 test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])
                 print 'epoch %i, test_perf %f' % (epoch, test_perf*100)
                 # evaluation for each model id in data['test']['id']
-                self.compute_performace_models("test")
+                self.compute_performance_models("test")
 
                 # Save current best model parameters.
                 print "\nSaving current model parameters..."
@@ -610,50 +655,48 @@ class Model:
                 with open('M_%s_best.pkl' % self.encoder, 'wb') as handle:
                     cPickle.dump(self.M.eval(), handle)
                 print "Saved.\n"
-            # else:
-            #     if not self.fine_tune_W:
-            #         self.fine_tune_W = True # try fine-tuning W
-            #     else:
-            #         if not self.fine_tune_M:
-            #             self.fine_tune_M = True # try fine-tuning M
-            #         else:
-            #             break
-            #     self.update_params()
+
         return test_perf, test_probas
 
+    # TODO: never used!
     def compute_recall_ks(self, probas):
+        def recall(probas, k, group_size):
+            """
+            Return accuracy to get the true response in the top k from a group of responses according to current probabilities
+            :param probas: current learned probabilities
+            :param k: the margin in which the true response must be
+            :param group_size:  the number of responses to collect
+            :return: accuracy
+            """
+            test_size = 10
+            n_batches = len(probas) // test_size
+            n_correct = 0  # keep track of the number of times we got the true response in the top k
+            for i in xrange(n_batches):
+                batch = np.array(probas[i*test_size: (i+1)*test_size])[:group_size]
+                indices = np.argpartition(batch, -k)[-k:]
+                if 0 in indices:
+                    n_correct += 1
+            return n_correct / (len(probas) / test_size)
+
         recall_k = {}
         for group_size in [2, 5, 10]:
             recall_k[group_size] = {}
             print 'group_size: %d' % group_size
             for k in [1, 2, 5]:
                 if k < group_size:
-                    recall_k[group_size][k] = self.recall(probas, k, group_size)
+                    recall_k[group_size][k] = recall(probas, k, group_size)
                     print 'recall@%d' % k, recall_k[group_size][k]
         return recall_k
 
-    def recall(self, probas, k, group_size):
-        test_size = 10
-        n_batches = len(probas) // test_size
-        n_correct = 0
-        for i in xrange(n_batches):
-            batch = np.array(probas[i*test_size:(i+1)*test_size])[:group_size]
-            #p = np.random.permutation(len(batch))
-            #indices = p[np.argpartition(batch[p], -k)[-k:]]
-            indices = np.argpartition(batch, -k)[-k:]
-            if 0 in indices:
-                n_correct += 1
-        return n_correct / (len(probas) / test_size)
-
-def as_floatX(variable):
-    if isinstance(variable, float):
-        return np.cast[theano.config.floatX](variable)
-
-    if isinstance(variable, np.ndarray):
-        return np.cast[theano.config.floatX](variable)
-    return theano.tensor.cast(variable, theano.config.floatX)
-
+# TODO: probably don't need this if we can use lasagna implementation
 def sgd_updates_adadelta(cost, params, rho=0.95, epsilon=1e-6, norm_lim=9, word_vec_name='embeddings'):
+    def as_floatX(variable):
+        if isinstance(variable, float):
+            return np.cast[theano.config.floatX](variable)
+        elif isinstance(variable, np.ndarray):
+            return np.cast[theano.config.floatX](variable)
+        return theano.tensor.cast(variable, theano.config.floatX)
+
     updates = OrderedDict({})
     exp_sqr_grads = OrderedDict({})
     exp_sqr_ups = OrderedDict({})
@@ -681,33 +724,12 @@ def sgd_updates_adadelta(cost, params, rho=0.95, epsilon=1e-6, norm_lim=9, word_
             updates[param] = stepped_param
     return updates
 
-def pad_to_batch_size(X, batch_size):
-    n_seqs = len(X)
-    n_batches_out = np.ceil(float(n_seqs) / batch_size)
-    n_seqs_out = batch_size * n_batches_out
-
-    to_pad = n_seqs % batch_size
-    if to_pad > 0:
-        X += X[:batch_size-to_pad]
-    return X
-
-def get_nrows(fname):
-    with open(fname, 'rb') as f:
-        nrows = 0
-        for _ in f:
-            nrows += 1
-        return nrows
-
-def load_pv_vecs(fname, ndims):
-    nrows = get_nrows(fname)
-    with open(fname, "rb") as f:
-        X = np.zeros((nrows+1, ndims))
-        for i,line in enumerate(f):
-            L = line.strip().split()
-            X[i+1] = np.array(L[1:], dtype='float32')
-        return X
-
 def sort_by_len(dataset):
+    """
+    Sort a given data set by its context length
+    :param data set: dictionary of contexts, responses, flags
+    :return: ordered dictionary
+    """
     c, r, y = dataset['c'], dataset['r'], dataset['y']
     indices = range(len(y))
     indices.sort(key=lambda i: len(c[i]))
@@ -720,64 +742,70 @@ def str2bool(v):
 def main():
     parser = argparse.ArgumentParser()
     parser.register('type','bool',str2bool)
+
+    # TODO: check if I can remove those:
     parser.add_argument('--conv_attn', type='bool', default=False, help='Use convolutional attention')
-    parser.add_argument('--encoder', type=str, default='rnn', help='Encoder')
-    parser.add_argument('--hidden_size', type=int, default=200, help='Hidden size')
-    parser.add_argument('--fine_tune_W', type='bool', default=False, help='Whether to fine-tune W')
-    parser.add_argument('--fine_tune_M', type='bool', default=False, help='Whether to fine-tune M')
-    parser.add_argument('--batch_size', type=int, default=256, help='Batch size')
-    parser.add_argument('--shuffle_batch', type='bool', default=False, help='Shuffle batch')
-    parser.add_argument('--is_bidirectional', type='bool', default=False, help='Bidirectional RNN/LSTM')
-    parser.add_argument('--n_epochs', type=int, default=100, help='Num epochs')
-    parser.add_argument('--lr_decay', type=float, default=0.95, help='Learning rate decay')
-    parser.add_argument('--sqr_norm_lim', type=float, default=1, help='Squared norm limit')
-    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
-    parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
-    parser.add_argument('--forget_gate_bias', type=float, default=2.0, help='Forget gate bias')
-    parser.add_argument('--use_pv', type='bool', default=False, help='Use PV')
-    parser.add_argument('--pv_ndims', type=int, default=100, help='PV ndims')
-    parser.add_argument('--max_seqlen', type=int, default=160, help='Max seqlen')
+    parser.add_argument('--use_ntn', type='bool', default=False, help='Whether to use NTN')
+    parser.add_argument('--k', type=int, default=4, help='Size of k in NTN')
     parser.add_argument('--corr_penalty', type=float, default=0.0, help='Correlation penalty')
     parser.add_argument('--xcov_penalty', type=float, default=0.0, help='XCov penalty')
-    parser.add_argument('--n_recurrent_layers', type=int, default=1, help='Num recurrent layers')
-    parser.add_argument('--input_dir', type=str, default='.', help='Input dir')
-    parser.add_argument('--save_model', type='bool', default=False, help='Whether to save the model')
-    parser.add_argument('--model_fname', type=str, default='model.pkl', help='Model filename')
-    parser.add_argument('--dataset_fname', type=str, default='dataset.pkl', help='Dataset filename')
-    parser.add_argument('--W_fname', type=str, default='W.pkl', help='W filename')
-    parser.add_argument('--sort_by_len', type='bool', default=False, help='Whether to sort contexts by length')
     parser.add_argument('--penalize_emb_norm', type='bool', default=False, help='Whether to penalize norm of embeddings')
     parser.add_argument('--penalize_emb_drift', type='bool', default=False, help='Whether to use re-embedding words penalty')
     parser.add_argument('--penalize_activations', type='bool', default=False, help='Whether to penalize activations')
     parser.add_argument('--emb_penalty', type=float, default=0.001, help='Embedding penalty')
     parser.add_argument('--act_penalty', type=float, default=500, help='Activation penalty')
-    parser.add_argument('--use_ntn', type='bool', default=False, help='Whether to use NTN')
-    parser.add_argument('--k', type=int, default=4, help='Size of k in NTN')
-    parser.add_argument('--seed', type=int, default=42, help='Random seed')
-    parser.add_argument('--train_examples', type=int, required=False, help='Number of training examples')
+
+    # Structure of Network:
+    parser.add_argument('--encoder', type=str, default='rnn', help='Type of encoding RNN units: rnn, gru, lst')
+    parser.add_argument('--hidden_size', type=int, default=200, help='Hidden size')
+    parser.add_argument('--is_bidirectional', type='bool', default=False, help='Bidirectional RNN')
+    parser.add_argument('--n_recurrent_layers', type=int, default=1, help='Num recurrent layers')
+
+    # What to optimize in the network:
+    parser.add_argument('--fine_tune_W', type='bool', default=False, help='Whether to fine-tune word embeddings W')
+    parser.add_argument('--fine_tune_M', type='bool', default=False, help='Whether to fine-tune M')
+
+    # Size of the batches:
+    parser.add_argument('--max_seqlen', type=int, default=160, help='Max seqlen')
+    parser.add_argument('--batch_size', type=int, default=256, help='Batch size')
+
+    # Learning parameters:
+    parser.add_argument('--n_epochs', type=int, default=100, help='Num epochs')
+    parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
+    parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
+    parser.add_argument('--lr_decay', type=float, default=0.95, help='Learning rate decay')
+    # TODO: can these be fixed?
+    parser.add_argument('--sqr_norm_lim', type=float, default=1, help='Squared norm limit')
+    parser.add_argument('--forget_gate_bias', type=float, default=2.0, help='Forget gate bias')
+
+    # Saving parameters:
+    parser.add_argument('--save_model', type='bool', default=False, help='Whether to save the model')
+    parser.add_argument('--model_fname', type=str, default='model.pkl', help='Model filename')
+
+    # Loading parameters:
+    parser.add_argument('--input_dir', type=str, default='.', help='Input dir')
+    parser.add_argument('--dataset_fname', type=str, default='dataset.pkl', help='Dataset filename')
+    parser.add_argument('--W_fname', type=str, default='W.pkl', help='W filename')
+    parser.add_argument('--train_examples', type=int, required=False, help='Number of training examples to keep')
+    parser.add_argument('--sort_by_len', type='bool', default=False, help='Whether to sort examples by context length')
+
+    # Script parameters:
+    parser.add_argument('--seed', type=int, default=4213, help='Random seed')
     parser.add_argument('--test', type='bool', default=False, help='Use the presaved model.')
+
     args = parser.parse_args()
     print 'args:', args
     np.random.seed(args.seed)
 
     print "\nLoading data..."
-    if args.use_pv:
-        data = cPickle.load(open('../data/all_pv.pkl'))
-        train_data = { 'c': data['c'][:1000000], 'r': data['r'][:1000000], 'y': data['y'][:1000000] }
-        val_data = { 'c': data['c'][1000000:1356080], 'r': data['r'][1000000:1356080], 'y': data['y'][1000000:1356080] }
-        test_data = { 'c': data['c'][1000000+356080:], 'r': data['r'][1000000+356080:], 'y': data['y'][1000000+356080:] }
-
-        for key in ['c', 'r', 'y']:
-            for dataset in [train_data, val_data]:
-                dataset[key] = pad_to_batch_size(dataset[key], args.batch_size)
-
-        W = load_pv_vecs('../data/pv_vectors_%dd.txt' % args.pv_ndims, args.pv_ndims)
-        args.max_seqlen = 21
-    else:
-        train_data, val_data, test_data = cPickle.load(open('%s/%s' % (args.input_dir, args.dataset_fname), 'rb'))
-        W, _ = cPickle.load(open('%s/%s' % (args.input_dir, args.W_fname), 'rb'))
+    # data sets are dictionaries containing contexts, responses, flag
+    train_data, val_data, test_data = cPickle.load(open('%s/%s' % (args.input_dir, args.dataset_fname), 'rb'))
+    # W is the word embedding matrix and word2idx is a dictionary.
+    W, word2idx = cPickle.load(open('%s/%s' % (args.input_dir, args.W_fname), 'rb'))
+    print "W.shape:", W.shape  # (5092,300) = word embedding for each vocab word
 
     print('Number of training examples: %d' % (len(train_data['c'])))
+    # Cap the number of training examples
     if args.train_examples:
         num_train_examples = args.train_examples + args.train_examples % args.batch_size
         train_data['c'] = train_data['c'][:num_train_examples]
@@ -789,56 +817,66 @@ def main():
 
     data = { 'train' : train_data, 'val': val_data, 'test': test_data }
 
+    # sort the training data by context length
     if args.sort_by_len:
         sort_by_len(data['train'])
 
     print "\nCreating model..."
-    # model = Model(**args.__dict__)
     model = Model(
         data=data,
         W=W.astype(theano.config.floatX),
-        max_seqlen=args.max_seqlen,
-        hidden_size=args.hidden_size,
-        batch_size=args.batch_size,
-        lr=args.lr,
-        lr_decay=args.lr_decay,
-        sqr_norm_lim=args.sqr_norm_lim,
-        fine_tune_W=args.fine_tune_W,
-        fine_tune_M=args.fine_tune_M,
-        use_ntn=args.use_ntn,
-        optimizer=args.optimizer,
-        forget_gate_bias=args.forget_gate_bias,
-        conv_attn=args.conv_attn,
-        encoder=args.encoder,
-        corr_penalty=args.corr_penalty,
-        xcov_penalty=args.xcov_penalty,
-        penalize_emb_norm=args.penalize_emb_norm,
-        penalize_emb_drift=args.penalize_emb_drift,
-        penalize_activations=args.penalize_activations,
-        emb_penalty=args.emb_penalty,
-        act_penalty=args.act_penalty,
-        k=args.k,
-        n_recurrent_layers=args.n_recurrent_layers,
-        is_bidirectional=args.is_bidirectional
+        max_seqlen=args.max_seqlen,                         # default 160
+        hidden_size=args.hidden_size,                       # default 200
+        batch_size=args.batch_size,                         # default 256
+        lr=args.lr,                                         # default 0.001
+        lr_decay=args.lr_decay,                             # default 0.95
+        sqr_norm_lim=args.sqr_norm_lim,                     # default 1 TODO: Can this be fixed?
+        fine_tune_W=args.fine_tune_W,                       # default False
+        fine_tune_M=args.fine_tune_M,                       # default False TODO: check what is M?
+        use_ntn=args.use_ntn,                               # default False TODO: check if I can remove this
+        optimizer=args.optimizer,                           # default ADAM
+        forget_gate_bias=args.forget_gate_bias,             # default 2.0 TODO: Can this be fixed?
+        conv_attn=args.conv_attn,                           # default False TODO: check if I can remove this
+        encoder=args.encoder,                               # default RNN
+        corr_penalty=args.corr_penalty,                     # default 0.0 TODO: check if I can remove this
+        xcov_penalty=args.xcov_penalty,                     # default 0.0 TODO: check if I can remove this
+        penalize_emb_norm=args.penalize_emb_norm,           # default False TODO: check if I can remove this
+        penalize_emb_drift=args.penalize_emb_drift,         # default False TODO: check if I can remove this
+        penalize_activations=args.penalize_activations,     # default False TODO: check if I can remove this
+        emb_penalty=args.emb_penalty,                       # default 0.001 TODO: If I can remove the above, then I should remove this
+        act_penalty=args.act_penalty,                       # default 500 TODO: If I can remove the above, then I should remove this
+        k=args.k,                                           # default 4 TODO: If I can remove use_ntn, then I should remove this
+        n_recurrent_layers=args.n_recurrent_layers,         # default 1
+        is_bidirectional=args.is_bidirectional              # default False
     )
     print "Model created."
 
+    # If testing a pre-saved model
     if args.test:
+        "\nWill test the model:"
+        # load parameter values into the network
+        print "loading trained weights..."
         with open('weights_%s_best.pkl' % args.encoder, 'rb') as handle:
             params = cPickle.load(handle)
             lasagne.layers.set_all_param_values(model.l_out, params)
+        # load the M matrix
+        print "loading M matrix..."
         with open('M_%s_best.pkl' % args.encoder, 'rb') as handle:
             M = cPickle.load(handle)
             model.M.set_value(M)
+        # load the W matrix
+        print "loading W matrix..."
         with open('embed_%s_best.pkl' % args.encoder, 'rb') as handle:
             em = cPickle.load(handle)
             model.embeddings.set_value(em)
-
+        # run the test function
+        print "Testing model..."
         model.test()
 
+    # If training the modeL
     else:
         "\nTraining model..."
-        test_perf, test_probas = model.train(n_epochs=args.n_epochs, shuffle_batch=args.shuffle_batch)
+        test_perf, test_probas = model.train(n_epochs=args.n_epochs)  # default 100
         "Model trained."
         print "test_perfs =", test_perf
         print "test_probas =", test_probas
