@@ -4,7 +4,7 @@ import random
 import copy
 import numpy.random as np_rnd
 from datetime import datetime
-from apply_bpe import BPE
+from bpe.apply_bpe import BPE
 
 
 def string2indices(p_str, str_to_idx, bpe=None):
@@ -68,15 +68,15 @@ def main():
     # Load the original Twitter dataset in BPE format - only TRUE responses
     ###
     print "\nLoading original twitter data..."
-    dialogues = cPickle.load(open('%s/BPE/Train.dialogues.pkl' % args.data_dir, 'rb'))
+    dialogues = cPickle.load(open('%s/bpe/Train.dialogues.pkl' % args.data_dir, 'rb'))
     # get the list of contexts, and the list of TRUE responses.
     contexts, true_responses = process_dialogues(dialogues)
 
     ###
     # LOAD BPE DICTIONARIES: map bpe_indices/bpe_words - vocab ~ 5,000
     ###
-    twitter_bpe = BPE(open('%s/BPE/Twitter_Codes_5000.txt' % args.data_dir, 'r').readlines())
-    twitter_bpe_dict = cPickle.load(open('%s/BPE/Dataset.dict-5k.pkl' % args.data_dir, 'r'))
+    twitter_bpe = BPE(open('%s/bpe/Twitter_Codes_5000.txt' % args.data_dir, 'r').readlines())
+    twitter_bpe_dict = cPickle.load(open('%s/bpe/Dataset.dict-5k.pkl' % args.data_dir, 'r'))
     twitter_bpe_str_to_idx = dict([(tok, tok_id) for tok, tok_id, _, _ in twitter_bpe_dict])
     twitter_bpe_idx_to_str = dict([(tok_id, tok) for tok, tok_id, _, _ in twitter_bpe_dict])
     print "BPE dictionary length: ", len(twitter_bpe_dict)
@@ -104,7 +104,7 @@ def main():
         model_responses[response_file_name] = generated_bpe_responses
 
         print "Finished processing file ", response_file_name
-
+    return
     ###
     # CREATE THE DATA SET
     ###
