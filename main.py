@@ -19,6 +19,7 @@ class Model:
                  max_seqlen=160,
                  hidden_size=100,
                  batch_size=50,
+                 patience=10,
                  lr=0.001,
                  lr_decay=0.95,
                  fine_tune_W=False,
@@ -40,6 +41,7 @@ class Model:
         self.data = data
         self.max_seqlen = max_seqlen
         self.batch_size = batch_size
+        self.patience = patience
         self.fine_tune_W = fine_tune_W
         self.fine_tune_M = fine_tune_M
         self.use_ntn = use_ntn
@@ -402,7 +404,7 @@ class Model:
         # evaluation for each model id in data['test']['id']
         self.compute_performance_models("test")
 
-    def train(self, n_epochs=100, verbose=True):
+    def train(self, n_epochs=100, patience=10, verbose=True):
         """
         Train the model
         :param n_epochs: number of training epochs to perform
@@ -410,6 +412,7 @@ class Model:
         """
         epoch = 0           # keep track of number of epochs we ran
         best_val_perf = 0   # keep track of best validation score
+
         test_perf = 0       # keep track of current test score
         test_probas = None  # keep track of current best probabilities
 
@@ -420,7 +423,7 @@ class Model:
         ######################
         # MAIN TRAINING LOOP #
         ######################
-        while (epoch < n_epochs):
+        while epoch < n_epochs and patience > 0:
             epoch += 1
             epoch_cost = 0  # keep track of training cost for each epoch
             start_time = time.time()
@@ -468,6 +471,7 @@ class Model:
             if val_perf > best_val_perf:
                 print "\nImproved validation score!"
                 best_val_perf = val_perf
+                patience = self.patience  # reset patience to initial value
 
                 # Compute TEST performance:
                 test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
@@ -487,6 +491,8 @@ class Model:
                 with open('M_%s_best.pkl' % self.encoder, 'wb') as handle:
                     cPickle.dump(self.M.eval(), handle)
                 print "Saved.\n"
+            else:
+                patience -= 1  # decrease patience
 
         return test_perf, test_probas
 
@@ -564,6 +570,7 @@ def main():
 
     # Learning parameters:
     parser.add_argument('--n_epochs', type=int, default=100, help='Num epochs')
+    parser.add_argument('--patience', type=int, default=10, help='Number of epochs to wait before exiting if no validation set improvement')
     parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--lr_decay', type=float, default=0.95, help='Learning rate decay')
@@ -621,19 +628,20 @@ def main():
         max_seqlen=args.max_seqlen,                         # default 160
         hidden_size=args.hidden_size,                       # default 200
         batch_size=args.batch_size,                         # default 256
+        patience=args.patience,                             # default 10
         lr=args.lr,                                         # default 0.001
         lr_decay=args.lr_decay,                             # default 0.95
         fine_tune_W=args.fine_tune_W,                       # default False
         fine_tune_M=args.fine_tune_M,                       # default False
         use_ntn=args.use_ntn,                               # default False TODO: check if I can remove this
+        k=args.k,                                           # default 4 TODO: If I can remove use_ntn, then I should remove this
         optimizer=args.optimizer,                           # default ADAM
         encoder=args.encoder,                               # default RNN
         penalize_emb_norm=args.penalize_emb_norm,           # default False TODO: check if I can remove this
         penalize_emb_drift=args.penalize_emb_drift,         # default False TODO: check if I can remove this
-        penalize_activations=args.penalize_activations,     # default False TODO: check if I can remove this
         emb_penalty=args.emb_penalty,                       # default 0.001 TODO: If I can remove the above, then I should remove this
+        penalize_activations=args.penalize_activations,     # default False TODO: check if I can remove this
         act_penalty=args.act_penalty,                       # default 500 TODO: If I can remove the above, then I should remove this
-        k=args.k,                                           # default 4 TODO: If I can remove use_ntn, then I should remove this
         n_recurrent_layers=args.n_recurrent_layers,         # default 1
         is_bidirectional=args.is_bidirectional              # default False
     )
@@ -664,7 +672,7 @@ def main():
     # If training the modeL
     else:
         "\nTraining model..."
-        test_perf, test_probas = model.train(n_epochs=args.n_epochs)  # default 100
+        test_perf, test_probas = model.train(n_epochs=args.n_epochs, patience=args.patience)  # default 100
         "Model trained."
         print "test_perfs =", test_perf
         print "test_probas =", test_probas
