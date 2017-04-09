@@ -591,7 +591,7 @@ def main():
     # data sets are dictionaries containing contexts, responses, flag
     train_data, val_data, test_data = cPickle.load(open('%s/%s' % (args.input_dir, args.dataset_fname), 'rb'))
     # W is the word embedding matrix and word2idx is a dictionary.
-    W, word2idx = cPickle.load(open('%s/%s' % (args.input_dir, args.W_fname), 'rb'))
+    W, word2idx, idx2word = cPickle.load(open('%s/%s' % (args.input_dir, args.W_fname), 'rb'))
     print "W.shape:", W.shape  # (5092,300) = word embedding for each vocab word
 
     print "Number of training examples: %d" % (len(train_data['c']))

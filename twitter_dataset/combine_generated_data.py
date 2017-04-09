@@ -52,13 +52,23 @@ def process_dialogues(dialogues):
     return contexts, responses
 
 
+def print_top_k(list, idx_2_str=None, twitter_bpe=None, k=10):
+    if idx_2_str and twitter_bpe:
+        top_list = map(lambda e: indices2string(e, idx_2_str, twitter_bpe), list)[:k]
+    else:
+        top_list = list[:k]
+    for e in top_list:
+        print e
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.register('type', 'bool', lambda v: v.lower() in ("yes", "true", "t", "1"))
     parser.add_argument('--data_dir', type=str, default='.', help='Input/Output directory to find original data and save new data')
     parser.add_argument('--inputs', nargs='+', type=str, required=True, help='File(s) of responses to be added')
-    parser.add_argument('--data_fname', type=str, default='dataset_twitter_bpe.pkl', help='File name of new data')
-    parser.add_argument('--data_embeddings', type=str, default='W_twitter_bpe.pkl', help='File name of new data embeddings')
+    parser.add_argument('--data_fname_prefix', type=str, default='dataset', help='File name of new data')
+    parser.add_argument('--data_embeddings_prefix', type=str, default='W', help='File name of new data embeddings')
+    parser.add_argument('--embedding_size', type=int, default=300, help='Size of word embedding')
     parser.add_argument('--random_model', type=bool, default=True, help='Flag to add a random retrieval model as part of the new data')
     parser.add_argument('--oversampling', type=bool, default=True, help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
     args = parser.parse_args()
@@ -88,6 +98,10 @@ def main():
     ###
     model_responses = {}  # dictionary of the form {'model_id':[list of responses], ...}
 
+    # HRED, VHRED, c_tfidf, r_tfidf, random, true
+
+    # print "contexts:"
+    # print_top_k(contexts, twitter_bpe_idx_to_str, twitter_bpe, 10)
     for response_file_name in args.inputs:
         print "\nProcessing ", response_file_name, "..."
         generated_data = open(response_file_name, 'rb')
@@ -100,11 +114,14 @@ def main():
 
         generated_bpe_responses = map(lambda r: string2indices(r, twitter_bpe_str_to_idx, twitter_bpe), generated_str_responses)
 
-        assert(len(generated_bpe_responses) == len(contexts))
+        assert len(generated_bpe_responses) == len(contexts)
         model_responses[response_file_name] = generated_bpe_responses
 
+        # print_top_k(generated_str_responses)
         print "Finished processing file ", response_file_name
-    return
+    # print "true responses:"
+    # print_top_k(true_responses, twitter_bpe_idx_to_str, twitter_bpe, 10)
+
     ###
     # CREATE THE DATA SET
     ###
@@ -126,7 +143,7 @@ def main():
     test_true_responses = true_responses[val_test_split_index:]
 
     data = {
-        'train': {'c': [], 'r': [], 'y': []},
+        'train': {'c': [], 'r': [], 'y': [], 'id': []},
         'val': {'c': [], 'r': [], 'y': [], 'id': []},
         'test': {'c': [], 'r': [], 'y': [], 'id': []},
     }
@@ -135,6 +152,7 @@ def main():
     data['train']['c'].extend(train_contexts)
     data['train']['r'].extend(train_true_responses)
     data['train']['y'].extend([1] * len(train_true_responses))
+    data['train']['id'].extend(['true'] * len(train_true_responses))
 
     data['val']['c'].extend(val_contexts)
     data['val']['r'].extend(val_true_responses)
@@ -150,7 +168,6 @@ def main():
         # get the list of RANDOM responses.
         random_responses = copy.deepcopy(true_responses)
         random.shuffle(random_responses)
-        assert len(contexts) == len(true_responses) == len(random_responses)
 
         # Split the random responses into train/val/test
         train_random_responses = random_responses[:train_val_split_index]
@@ -161,6 +178,7 @@ def main():
         data['train']['c'].extend(train_contexts)
         data['train']['r'].extend(train_random_responses)
         data['train']['y'].extend([0] * len(train_random_responses))
+        data['train']['id'].extend(['rand'] * len(train_random_responses))
 
         data['val']['c'].extend(val_contexts)
         data['val']['r'].extend(val_random_responses)
@@ -179,10 +197,11 @@ def main():
         val_generated_responses = generated_responses[train_val_split_index:val_test_split_index]
         test_generated_responses = generated_responses[val_test_split_index:]
 
-        # add GENERATED responses (and TRUE responses for the training set to have 50/50 true and false responses)
+        # add GENERATED responses
         data['train']['c'].extend(train_contexts)
         data['train']['r'].extend(train_generated_responses)
         data['train']['y'].extend([0] * len(train_generated_responses))
+        data['train']['id'].extend([model_name] * len(train_generated_responses))
 
         data['val']['c'].extend(val_contexts)
         data['val']['r'].extend(val_generated_responses)
@@ -194,21 +213,23 @@ def main():
         data['test']['y'].extend([0] * len(test_generated_responses))
         data['test']['id'].extend([model_name] * len(test_generated_responses))
 
+    # add TRUE responses for the TRAINING set to have 50/50 true and false responses
     if args.oversampling:
         # get the number of models with negative examples.
         false_response_models = len(model_responses)
-        if args.random_model:
+        if args.random_model:  # random model is also a model with negative examples
             false_response_models += 1
 
         # over sample by adding the same amount of true examples (-1 bcs already added true examples once)
         data['train']['c'].extend(train_contexts * (false_response_models-1))
         data['train']['r'].extend(train_true_responses * (false_response_models-1))
         data['train']['y'].extend([1] * len(train_true_responses) * (false_response_models-1))
-        # making sure we have same amount of true and false responses.
+        data['train']['id'].extend(['true'] * len(train_true_responses) * (false_response_models-1))
+        # making sure we have same amount of true and false responses in the training set.
         assert len(filter(lambda flag: flag==0, data['train']['y'])) == len(filter(lambda flag: flag==1, data['train']['y']))
 
-    # Making sure each context has a unique response, flag (and model_id for val & test sets)
-    assert len(data['train']['c']) == len(data['train']['r']) == len(data['train']['y'])
+    # Making sure each context has a unique response, flag, and model_id
+    assert len(data['train']['c']) == len(data['train']['r']) == len(data['train']['y']) == len(data['train']['id'])
     assert len(data['val']['c']) == len(data['val']['r']) == len(data['val']['y']) == len(data['val']['id'])
     assert len(data['test']['c']) == len(data['test']['r']) == len(data['test']['y']) == len(data['test']['id'])
 
@@ -216,19 +237,19 @@ def main():
     if args.random_model and args.oversampling:
         print 'New number of training examples: true+rand+(true+gen)*%d = %d' % (len(model_responses), len(data['train']['c']))
         print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-        print 'New number of testing examples: true+rand+gen*%d %d' % (len(model_responses), len(data['test']['c']))
+        print 'New number of testing examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
     elif args.oversampling:
-        print 'New number of training examples: true*%d+gen*%d = %d' % (len(model_responses), len(model_responses), len(data['train']['c']))
+        print 'New number of training examples: (true+gen)*%d = %d' % (len(model_responses), len(data['train']['c']))
         print 'New number of validation examples: true+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
         print 'New number of testing examples: true+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
     elif args.random_model:
         print 'New number of training examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['train']['c']))
         print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-        print 'New number of testing examples: true+rand+gen*%d %d' % (len(model_responses), len(data['test']['c']))
+        print 'New number of testing examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
     else:
         print 'New number of training examples: true+gen*%d = %d' % (len(model_responses), len(data['train']['c']))
         print 'New number of validation examples: true+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-        print 'New number of testing examples: true+gen*%d %d' % (len(model_responses), len(data['test']['c']))
+        print 'New number of testing examples: true+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
 
     ###
     # SHUFFLE THE WHOLE TRAINING SET
@@ -240,13 +261,15 @@ def main():
     random.shuffle(data['train']['r'])
     random.seed(SEED)
     random.shuffle(data['train']['y'])
+    random.seed(SEED)
+    random.shuffle(data['train']['id'])
 
     ###
     # SAVE THE RESULTING DATA
     # .pkl will have (data[train], data[val], data[test])
     ###
-    print "\nSaving resulting dataset in %s/%s..." % (args.data_dir, args.data_fname)
-    data_file = open("%s/%s" % (args.data_dir, args.data_fname), 'wb')
+    print "\nSaving resulting dataset in %s/%s_twitter_bpe.pkl..." % (args.data_dir, args.data_fname_prefix)
+    data_file = open("%s/%s_twitter_bpe.pkl" % (args.data_dir, args.data_fname_prefix), 'wb')
     cPickle.dump((data['train'], data['val'], data['test']), data_file, protocol=cPickle.HIGHEST_PROTOCOL)
     data_file.close()
     print "Saved."
@@ -255,11 +278,11 @@ def main():
     # SAVE RANDOM WORD EMBEDDINGS
     # .pkl will have (word embeddings, str_to_idx map)
     ###
-    print "\nSaving random word embeddings in %s/%s..." % (args.data_dir, args.data_embeddings)
+    print "\nSaving random word embeddings in %s/%s_twitter_bpe.pkl..." % (args.data_dir, args.data_embeddings_prefix)
     vocab_size = len(twitter_bpe_dict)
-    random_word_embeddings = np_rnd.random((vocab_size, 300))
-    w_file = open("%s/%s" % (args.data_dir, args.data_embeddings), 'wb')
-    cPickle.dump((random_word_embeddings, twitter_bpe_str_to_idx), w_file, protocol=cPickle.HIGHEST_PROTOCOL)
+    random_word_embeddings = np_rnd.random((vocab_size, args.embedding_size))
+    w_file = open("%s/%s_%d_twitter_bpe.pkl" % (args.data_dir, args.data_embeddings_prefix, args.embedding_size), 'wb')
+    cPickle.dump((random_word_embeddings, twitter_bpe_str_to_idx, twitter_bpe_idx_to_str), w_file, protocol=cPickle.HIGHEST_PROTOCOL)
     w_file.close()
     print "Saved."
 
