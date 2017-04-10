@@ -16,40 +16,46 @@ class Model:
     def __init__(self,
                  data,
                  W,
+                 save_prefix,
                  max_seqlen=160,
-                 hidden_size=100,
                  batch_size=50,
+                 # Network architecture:
+                 encoder='rnn',
+                 hidden_size=100,
+                 n_recurrent_layers=1,
+                 is_bidirectional=False,
+                 # Learning parameters:
                  patience=10,
+                 optimizer='adam',
                  lr=0.001,
                  lr_decay=0.95,
                  fine_tune_W=False,
                  fine_tune_M=False,
                  use_ntn=False,
                  k=4,
-                 optimizer='adam',
-                 encoder='rnn',
                  penalize_emb_norm=False,
                  penalize_emb_drift=False,
                  penalize_activations=False,
                  emb_penalty=0.001,
-                 act_penalty=500,
-                 n_recurrent_layers=1,
-                 is_bidirectional=False):
+                 act_penalty=500):
 
+        # Data parameters:
+        self.data = data
         vocab_size = W.shape[0]
         embedding_size = W.shape[1]
-        self.data = data
+        self.embeddings = theano.shared(W, name='embeddings', borrow=True)
+        self.save_prefix = save_prefix
         self.max_seqlen = max_seqlen
         self.batch_size = batch_size
+        # Learning parameters:
         self.patience = patience
+        self.optimizer = optimizer
+        self.lr = lr
+        self.lr_decay = lr_decay
         self.fine_tune_W = fine_tune_W
         self.fine_tune_M = fine_tune_M
         self.use_ntn = use_ntn
-        self.encoder = encoder
-        self.lr = lr
-        self.lr_decay = lr_decay
-        self.optimizer = optimizer
-        self.embeddings = theano.shared(W, name='embeddings', borrow=True)
+
         if penalize_emb_drift:
             self.orig_embeddings = theano.shared(W.copy(), name='orig_embeddings', borrow=True)
 
@@ -483,12 +489,12 @@ class Model:
 
                 # Save current best model parameters.
                 print "\nSaving current model parameters..."
-                with open('weights_%s_best.pkl' % self.encoder, 'wb') as handle:
+                with open('%s_best_weights.pkl' % self.save_prefix, 'wb') as handle:
                     params = [np.asarray(p.eval()) for p in lasagne.layers.get_all_params(self.l_out)]
                     cPickle.dump(params, handle)
-                with open('embed_%s_best.pkl' % self.encoder, 'wb') as handle:
+                with open('%s_best_embed.pkl' % self.save_prefix, 'wb') as handle:
                     cPickle.dump(self.embeddings.eval(), handle)
-                with open('M_%s_best.pkl' % self.encoder, 'wb') as handle:
+                with open('%s_best_M.pkl' % self.save_prefix, 'wb') as handle:
                     cPickle.dump(self.M.eval(), handle)
                 print "Saved.\n"
             else:
@@ -577,7 +583,7 @@ def main():
 
     # Saving parameters:
     parser.add_argument('--save_model', type='bool', default=False, help='Whether to save the model')
-    parser.add_argument('--model_fname', type=str, default='model.pkl', help='Model filename')
+    parser.add_argument('--save_prefix', type=str, default='twitter', help='prefix for all saved file names')
 
     # Loading parameters:
     parser.add_argument('--input_dir', type=str, default='.', help='Input dir')
@@ -625,25 +631,28 @@ def main():
     model = Model(
         data=data,
         W=W.astype(theano.config.floatX),
+        save_prefix=args.save_prefix,
         max_seqlen=args.max_seqlen,                         # default 160
-        hidden_size=args.hidden_size,                       # default 200
         batch_size=args.batch_size,                         # default 256
+        # Network architecture:
+        encoder=args.encoder,                               # default RNN
+        hidden_size=args.hidden_size,                       # default 200
+        n_recurrent_layers=args.n_recurrent_layers,         # default 1
+        is_bidirectional=args.is_bidirectional,             # default False
+        # Learning parameters:
         patience=args.patience,                             # default 10
+        optimizer=args.optimizer,                           # default ADAM
         lr=args.lr,                                         # default 0.001
         lr_decay=args.lr_decay,                             # default 0.95
         fine_tune_W=args.fine_tune_W,                       # default False
         fine_tune_M=args.fine_tune_M,                       # default False
         use_ntn=args.use_ntn,                               # default False TODO: check if I can remove this
         k=args.k,                                           # default 4 TODO: If I can remove use_ntn, then I should remove this
-        optimizer=args.optimizer,                           # default ADAM
-        encoder=args.encoder,                               # default RNN
         penalize_emb_norm=args.penalize_emb_norm,           # default False TODO: check if I can remove this
         penalize_emb_drift=args.penalize_emb_drift,         # default False TODO: check if I can remove this
         emb_penalty=args.emb_penalty,                       # default 0.001 TODO: If I can remove the above, then I should remove this
         penalize_activations=args.penalize_activations,     # default False TODO: check if I can remove this
-        act_penalty=args.act_penalty,                       # default 500 TODO: If I can remove the above, then I should remove this
-        n_recurrent_layers=args.n_recurrent_layers,         # default 1
-        is_bidirectional=args.is_bidirectional              # default False
+        act_penalty=args.act_penalty                        # default 500 TODO: If I can remove the above, then I should remove this
     )
     print "Model created."
 
@@ -672,15 +681,15 @@ def main():
     # If training the modeL
     else:
         "\nTraining model..."
-        test_perf, test_probas = model.train(n_epochs=args.n_epochs, patience=args.patience)  # default 100
+        test_perf, test_probas = model.train(n_epochs=args.n_epochs, patience=args.patience, verbose=False)  # default 100
         "Model trained."
         print "test_perfs =", test_perf
         print "test_probas =", test_probas
 
         if args.save_model:
             print "\nSaving model..."
-            cPickle.dump(model, open(args.model_fname, 'wb'))
-            cPickle.dump(test_probas, open('probas_%s' % args.model_fname, 'wb'))
+            cPickle.dump(model, open("%s_model.pkl" % args.save_prefix, 'wb'))
+            cPickle.dump(test_probas, open('%s_probas.pkl' % args.save_prefix, 'wb'))
             print "Model saved."
 
 if __name__ == '__main__':
