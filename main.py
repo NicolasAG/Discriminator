@@ -59,6 +59,8 @@ class Model:
         if penalize_emb_drift:
             self.orig_embeddings = theano.shared(W.copy(), name='orig_embeddings', borrow=True)
 
+        self.timings = {'train': {}, 'val': {}, 'test': {}}  # store performance at each time-step
+
         self.c = T.imatrix('c')  # context word indices, matrix of shape (batch_size, max_seqlen)
         self.r = T.imatrix('r')  # response word indices, matrix of shape (batch_size, max_seqlen)
         self.y = T.ivector('y')  # flag for each <context, response> pair within the batch, vector of size (batch_size)
@@ -352,18 +354,46 @@ class Model:
         self.shared_data['r_mask'].set_value(r_mask)
 
     def compute_probas(self, dataset, index):
+        """
+        :param dataset: dictionary of contexts, responses, flags
+        :param index: current batch index
+        :return: array of probability of being a good response for each context-response pair in the batch
+        """
         self.set_shared_variables(dataset, index)
-        return self.get_probas()[:,1]
+        return self.get_probas()[:,1]  # [:, 1] <=> Pr(y=1)
 
     def compute_pred(self, dataset, index):
+        """
+        :param dataset: dictionary of contexts, responses, flags
+        :param index: current batch index
+        :return: array of predictions for each context-response pair in that batch
+        """
         self.set_shared_variables(dataset, index)
         return self.get_pred()
 
     def compute_loss(self, dataset, index):
+        """
+        :param dataset: dictionary of contexts, responses, flags
+        :param index: current batch index
+        :return: number of prediction not equal to y in the batch
+        """
         self.set_shared_variables(dataset, index)
         return self.get_loss()
 
-    def compute_performance_models(self, scope):
+    def save_performance(self, scope, model_name, perf):
+        """
+        Save the performance into self.timings
+        :param scope: :param scope: either "train", "val" or "test" sets.
+        :param model_name: current model being tested against
+        :param perf: the discriminator performance to save
+        :return: None
+        """
+        assert scope in self.timings.keys()
+        if model_name not in self.timings[scope]:
+            self.timings[scope][model_name] = []
+        self.timings[scope][model_name].append(perf)
+
+    def compute_and_save_performance_models(self, scope):
         """
         Measure the accuracy of the current Discriminator on each dialogue model.
         :param scope: either "train", "val" or "test" sets.
@@ -393,9 +423,11 @@ class Model:
             print "evaluating", model_name
             n_batches = len(data['y']) // self.batch_size
             # Compute performance:
-            losses = [self.compute_loss(data, i) for i in xrange(n_batches)]
-            perf = 1 - np.sum(losses) / len(data['y'])
-            print '%s_perf: %f' % (scope, perf * 100)
+            losses = [self.compute_loss(data, i) for i in xrange(n_batches)]  # number of wrong predictions for each batch
+            perf = 1 - np.sum(losses) / len(data['y'])  # 1 - total number of errors / total number of examples
+            print '%s_perf: %f%%' % (scope, perf * 100)
+            self.save_performance(scope, model_name, perf)  # save performance of the discriminator for that model under this scope
+
 
     def test(self):
         """
@@ -404,11 +436,11 @@ class Model:
         """
         n_test_batches = len(self.data['test']['y']) // self.batch_size
         # Compute TEST performance:
-        test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
-        test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])
-        print 'test_perf: %f' % (test_perf * 100)
+        test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]  # number of wrong prediction for each batch
+        test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])  # 1 - total number of errors / total number of examples
+        print 'test_perf: %f%%' % (test_perf * 100)
         # evaluation for each model id in data['test']['id']
-        self.compute_performance_models("test")
+        self.compute_and_save_performance_models("test")
 
     def train(self, n_epochs=100, patience=10, verbose=True):
         """
@@ -418,7 +450,6 @@ class Model:
         """
         epoch = 0           # keep track of number of epochs we ran
         best_val_perf = 0   # keep track of best validation score
-
         test_perf = 0       # keep track of current test score
         test_probas = None  # keep track of current best probabilities
 
@@ -456,20 +487,20 @@ class Model:
             ###
             # Compute TRAIN performance:
             ###
-            train_losses = [self.compute_loss(self.data['train'], i) for i in xrange(n_train_batches)]
-            train_perf = 1 - np.sum(train_losses) / len(self.data['train']['y'])
-            print "epoch %i: train perf %f" % (epoch, train_perf*100)
+            train_losses = [self.compute_loss(self.data['train'], i) for i in xrange(n_train_batches)]  # number of wrong predictions for each batch
+            train_perf = 1 - np.sum(train_losses) / len(self.data['train']['y'])  # 1 - total number of errors / total number of examples
+            print "epoch %i: train perf %f%%" % (epoch, train_perf*100)
             # evaluation for each model id in data['train']['id']
-            self.compute_performance_models("train")
+            self.compute_and_save_performance_models("train")
 
             ###
             # Compute VALIDATION performance:
             ###
-            val_losses = [self.compute_loss(self.data['val'], i) for i in xrange(n_val_batches)]
-            val_perf = 1 - np.sum(val_losses) / len(self.data['val']['y'])
-            print 'epoch %i: val_perf %f' % (epoch, val_perf*100)
+            val_losses = [self.compute_loss(self.data['val'], i) for i in xrange(n_val_batches)]  # number of wrong predictions for each batch
+            val_perf = 1 - np.sum(val_losses) / len(self.data['val']['y'])  # 1 - total number of errors / total number of examples
+            print 'epoch %i: val_perf %f%%' % (epoch, val_perf*100)
             # evaluation for each model id in data['val']['id']
-            self.compute_performance_models("val")
+            self.compute_and_save_performance_models("val")
 
             ###
             # If doing better on validation set, measure test performance and same model parameters!
@@ -480,25 +511,29 @@ class Model:
                 patience = self.patience  # reset patience to initial value
 
                 # Compute TEST performance:
-                test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]
-                test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]
-                test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])
-                print 'epoch %i, test_perf %f' % (epoch, test_perf*100)
+                test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]  # number of wrong predictions for each batch
+                test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]  # probability of being a true response for each batch
+                test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])  # 1 - total number of errors / total number of examples
+                print 'epoch %i, test_perf %f%%' % (epoch, test_perf*100)
                 # evaluation for each model id in data['test']['id']
-                self.compute_performance_models("test")
+                self.compute_and_save_performance_models("test")
 
                 # Save current best model parameters.
                 print "\nSaving current model parameters..."
                 with open('%s_best_weights.pkl' % self.save_prefix, 'wb') as handle:
                     params = [np.asarray(p.eval()) for p in lasagne.layers.get_all_params(self.l_out)]
-                    cPickle.dump(params, handle)
+                    cPickle.dump(params, handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 with open('%s_best_embed.pkl' % self.save_prefix, 'wb') as handle:
-                    cPickle.dump(self.embeddings.eval(), handle)
+                    cPickle.dump(self.embeddings.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 with open('%s_best_M.pkl' % self.save_prefix, 'wb') as handle:
-                    cPickle.dump(self.M.eval(), handle)
+                    cPickle.dump(self.M.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
+                # Save performances.
+                with open('%s_timings.pkl' % self.save_prefix, 'wb') as handle:
+                    cPickle.dump(self.timings, handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 print "Saved.\n"
             else:
                 patience -= 1  # decrease patience
+                print "\nNo improvement! patience:", patience
 
         return test_perf, test_probas
 
@@ -678,10 +713,10 @@ def main():
         print "Testing model..."
         model.test()
 
-    # If training the modeL
+    # If training the model
     else:
         "\nTraining model..."
-        test_perf, test_probas = model.train(n_epochs=args.n_epochs, patience=args.patience, verbose=False)  # default 100
+        test_perf, test_probas = model.train(n_epochs=args.n_epochs, patience=args.patience, verbose=False)
         "Model trained."
         print "test_perfs =", test_perf
         print "test_probas =", test_probas
