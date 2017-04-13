@@ -100,8 +100,8 @@ def main():
 
     # HRED, VHRED, c_tfidf, r_tfidf, random, true
 
-    # print "contexts:"
-    # print_top_k(contexts, twitter_bpe_idx_to_str, twitter_bpe, 10)
+    print "contexts:"
+    print_top_k(contexts, twitter_bpe_idx_to_str, twitter_bpe)
     for response_file_name in args.inputs:
         print "\nProcessing ", response_file_name, "..."
         generated_data = open(response_file_name, 'rb')
@@ -117,10 +117,10 @@ def main():
         assert len(generated_bpe_responses) == len(contexts)
         model_responses[response_file_name] = generated_bpe_responses
 
-        # print_top_k(generated_str_responses)
+        print_top_k(generated_str_responses)
         print "Finished processing file ", response_file_name
-    # print "true responses:"
-    # print_top_k(true_responses, twitter_bpe_idx_to_str, twitter_bpe, 10)
+    print "true responses:"
+    print_top_k(true_responses, twitter_bpe_idx_to_str, twitter_bpe)
 
     ###
     # CREATE THE DATA SET

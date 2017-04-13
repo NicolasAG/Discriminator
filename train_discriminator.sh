@@ -5,11 +5,11 @@ THEANO_FLAGS='floatX=float32,device=gpu3' python main.py \
     --dataset_fname 'dataset_HRED-VHRED-cTFIDF-rTFIDF-RND-TRUE_twitter_bpe.pkl' \
     --W_fname 'W_HRED-VHRED-cTFIDF-rTFIDF-RND-TRUE_300_twitter_bpe.pkl' \
     --save_model True \
-    --save_prefix 'lstm-100_adam_HRED-VHRED-cTFIDF-rTFIDF-RND-TRUE_twitter' \
+    --save_prefix 'bi-lstm-50_adam_HRED-VHRED-cTFIDF-rTFIDF-RND-TRUE_twitter' \
     --batch_size 500 \
     --encoder 'lstm' \
-    --hidden_size 100 \
-    --is_bidirectional False \
+    --hidden_size 50 \
+    --is_bidirectional True \
     --n_recurrent_layers 1 \
     --patience 5 \
     --n_epochs 100 \
