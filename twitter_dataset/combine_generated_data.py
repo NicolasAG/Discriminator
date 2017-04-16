@@ -169,6 +169,9 @@ def main():
         # get the list of RANDOM responses.
         random_responses = copy.deepcopy(true_responses)
         random.shuffle(random_responses)
+        print "\nrandom responses:"
+        print_k(random_responses, twitter_bpe_idx_to_str, twitter_bpe)
+        print ""
 
         # Split the random responses into train/val/test
         train_random_responses = random_responses[:train_val_split_index]
@@ -279,7 +282,7 @@ def main():
     # SAVE RANDOM WORD EMBEDDINGS
     # .pkl will have (word embeddings, str_to_idx map)
     ###
-    print "\nSaving random word embeddings in %s/%s_%s_twitter_bpe.pkl..." % (args.data_dir, args.data_embeddings_prefix, args.data_embeddings_size)
+    print "\nSaving random word embeddings in %s/%s_%s_twitter_bpe.pkl..." % (args.data_dir, args.data_embeddings_prefix, args.embedding_size)
     vocab_size = len(twitter_bpe_dict)
     random_word_embeddings = np_rnd.random((vocab_size, args.embedding_size))
     w_file = open("%s/%s_%d_twitter_bpe.pkl" % (args.data_dir, args.data_embeddings_prefix, args.embedding_size), 'wb')

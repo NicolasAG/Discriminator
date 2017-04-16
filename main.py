@@ -500,10 +500,10 @@ class Model:
             val_perf = 1 - np.sum(val_losses) / len(self.data['val']['y'])  # 1 - total number of errors / total number of examples
             print 'epoch %i: val_perf %f%%' % (epoch, val_perf*100)
             # evaluation for each model id in data['val']['id']
-            self.compute_and_save_performance_models("val")
+            #self.compute_and_save_performance_models("val")
 
             ###
-            # If doing better on validation set, measure test performance and same model parameters!
+            # If doing better on validation set, measure each model test performance and same model parameters!
             ###
             if val_perf > best_val_perf:
                 print "\nImproved validation score!"
