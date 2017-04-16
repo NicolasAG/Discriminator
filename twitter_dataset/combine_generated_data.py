@@ -52,11 +52,12 @@ def process_dialogues(dialogues):
     return contexts, responses
 
 
-def print_top_k(list, idx_2_str=None, twitter_bpe=None, k=10):
+def print_k(list, idx_2_str=None, twitter_bpe=None, k=10):
+    start = random.randint(0, len(list)-k-1)
     if idx_2_str and twitter_bpe:
-        top_list = map(lambda e: indices2string(e, idx_2_str, twitter_bpe), list)[:k]
+        top_list = map(lambda e: indices2string(e, idx_2_str, twitter_bpe), list)[start:start+k]
     else:
-        top_list = list[:k]
+        top_list = list[start:start+k]
     for e in top_list:
         print e
 
@@ -101,7 +102,7 @@ def main():
     # HRED, VHRED, c_tfidf, r_tfidf, random, true
 
     print "contexts:"
-    print_top_k(contexts, twitter_bpe_idx_to_str, twitter_bpe)
+    print_k(contexts, twitter_bpe_idx_to_str, twitter_bpe)
     for response_file_name in args.inputs:
         print "\nProcessing ", response_file_name, "..."
         generated_data = open(response_file_name, 'rb')
@@ -117,10 +118,10 @@ def main():
         assert len(generated_bpe_responses) == len(contexts)
         model_responses[response_file_name] = generated_bpe_responses
 
-        print_top_k(generated_str_responses)
+        print_k(generated_str_responses)
         print "Finished processing file ", response_file_name
     print "true responses:"
-    print_top_k(true_responses, twitter_bpe_idx_to_str, twitter_bpe)
+    print_k(true_responses, twitter_bpe_idx_to_str, twitter_bpe)
 
     ###
     # CREATE THE DATA SET
@@ -278,7 +279,7 @@ def main():
     # SAVE RANDOM WORD EMBEDDINGS
     # .pkl will have (word embeddings, str_to_idx map)
     ###
-    print "\nSaving random word embeddings in %s/%s_twitter_bpe.pkl..." % (args.data_dir, args.data_embeddings_prefix)
+    print "\nSaving random word embeddings in %s/%s_%s_twitter_bpe.pkl..." % (args.data_dir, args.data_embeddings_prefix, args.data_embeddings_size)
     vocab_size = len(twitter_bpe_dict)
     random_word_embeddings = np_rnd.random((vocab_size, args.embedding_size))
     w_file = open("%s/%s_%d_twitter_bpe.pkl" % (args.data_dir, args.data_embeddings_prefix, args.embedding_size), 'wb')

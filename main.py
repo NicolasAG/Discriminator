@@ -586,14 +586,9 @@ def main():
     parser = argparse.ArgumentParser()
     parser.register('type','bool',str2bool)
 
-    # TODO: check if I can remove those:
+    # NTN parameters:
     parser.add_argument('--use_ntn', type='bool', default=False, help='Whether to use NTN')
     parser.add_argument('--k', type=int, default=4, help='Size of k in NTN')
-    parser.add_argument('--penalize_emb_norm', type='bool', default=False, help='Whether to penalize norm of embeddings')
-    parser.add_argument('--penalize_emb_drift', type='bool', default=False, help='Whether to use re-embedding words penalty')
-    parser.add_argument('--penalize_activations', type='bool', default=False, help='Whether to penalize activations')
-    parser.add_argument('--emb_penalty', type=float, default=0.001, help='Embedding penalty')
-    parser.add_argument('--act_penalty', type=float, default=500, help='Activation penalty')
 
     # Structure of Network:
     parser.add_argument('--encoder', type=str, default='rnn', help='Type of encoding RNN units: rnn, gru, lst')
@@ -615,6 +610,13 @@ def main():
     parser.add_argument('--optimizer', type=str, default='adam', help='Optimizer')
     parser.add_argument('--lr', type=float, default=0.001, help='Learning rate')
     parser.add_argument('--lr_decay', type=float, default=0.95, help='Learning rate decay')
+
+    # Regularization parameters:
+    parser.add_argument('--penalize_emb_norm', type='bool', default=False, help='Whether to penalize norm of embeddings')
+    parser.add_argument('--penalize_emb_drift', type='bool', default=False, help='Whether to use re-embedding words penalty')
+    parser.add_argument('--penalize_activations', type='bool', default=False, help='Whether to penalize activations')
+    parser.add_argument('--emb_penalty', type=float, default=0.001, help='Embedding penalty')
+    parser.add_argument('--act_penalty', type=float, default=500, help='Activation penalty')
 
     # Saving parameters:
     parser.add_argument('--save_model', type='bool', default=False, help='Whether to save the model')
@@ -681,13 +683,15 @@ def main():
         lr_decay=args.lr_decay,                             # default 0.95
         fine_tune_W=args.fine_tune_W,                       # default False
         fine_tune_M=args.fine_tune_M,                       # default False
-        use_ntn=args.use_ntn,                               # default False TODO: check if I can remove this
-        k=args.k,                                           # default 4 TODO: If I can remove use_ntn, then I should remove this
-        penalize_emb_norm=args.penalize_emb_norm,           # default False TODO: check if I can remove this
-        penalize_emb_drift=args.penalize_emb_drift,         # default False TODO: check if I can remove this
-        emb_penalty=args.emb_penalty,                       # default 0.001 TODO: If I can remove the above, then I should remove this
-        penalize_activations=args.penalize_activations,     # default False TODO: check if I can remove this
-        act_penalty=args.act_penalty                        # default 500 TODO: If I can remove the above, then I should remove this
+        # NTN parameters:
+        use_ntn=args.use_ntn,                               # default False
+        k=args.k,                                           # default 4
+        # Regularization parameters:
+        penalize_emb_norm=args.penalize_emb_norm,           # default False
+        penalize_emb_drift=args.penalize_emb_drift,         # default False
+        emb_penalty=args.emb_penalty,                       # default 0.001
+        penalize_activations=args.penalize_activations,     # default False
+        act_penalty=args.act_penalty                        # default 500
     )
     print "Model created."
 
