@@ -53,9 +53,10 @@ def process_dialogues(dialogues):
 
 
 def print_k(list, idx_2_str=None, twitter_bpe=None, k=10):
-    start = random.randint(0, len(list)-k-1)
+    # start = random.randint(0, len(list)-k-1)
+    start = 0
     if idx_2_str and twitter_bpe:
-        top_list = map(lambda e: indices2string(e, idx_2_str, twitter_bpe), list)[start:start+k]
+        top_list = map(lambda e : indices2string(e, idx_2_str, twitter_bpe), list[start:start+k])
     else:
         top_list = list[start:start+k]
     for e in top_list:

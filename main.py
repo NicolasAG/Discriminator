@@ -20,6 +20,7 @@ class Model:
     def __init__(self,
                  data,
                  W,
+                 save_path,
                  save_prefix,
                  max_seqlen=160,
                  batch_size=50,
@@ -48,6 +49,7 @@ class Model:
         vocab_size = W.shape[0]
         embedding_size = W.shape[1]
         self.embeddings = theano.shared(W, name='embeddings', borrow=True)
+        self.save_path = save_path
         self.save_prefix = save_prefix
         self.max_seqlen = max_seqlen
         self.batch_size = batch_size
@@ -401,7 +403,7 @@ class Model:
         """
         Measure the accuracy of the current Discriminator on each dialogue model.
         :param scope: either "train", "val" or "test" sets.
-        :return: output the accuracy of the discriminator for each model.
+        :return: array of discriminator accuracies for each model.
         """
         assert scope in ["train", "val", "test"]
 
@@ -423,12 +425,14 @@ class Model:
                     self.data_by_models[scope][model_name]['r'].append(self.data[scope]['r'][idx])
                     self.data_by_models[scope][model_name]['y'].append(self.data[scope]['y'][idx])
 
+        performances = []
         for model_name, data in self.data_by_models[scope].iteritems():
             print "evaluating", model_name
             n_batches = len(data['y']) // self.batch_size
             # Compute performance:
             losses = [self.compute_loss(data, i) for i in xrange(n_batches)]  # number of wrong predictions for each batch
             perf = 1 - np.sum(losses) / len(data['y'])  # 1 - total number of errors / total number of examples
+            performances.append(perf)
             print '%s_perf: %f%%' % (scope, perf * 100)
             self.save_performance(scope, model_name, perf)  # save performance of the discriminator for that model under this scope
 
@@ -438,13 +442,11 @@ class Model:
         Compute performances on test set
         :return: None
         """
-        n_test_batches = len(self.data['test']['y']) // self.batch_size
         # Compute TEST performance:
-        test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]  # number of wrong prediction for each batch
-        test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])  # 1 - total number of errors / total number of examples
-        print 'test_perf: %f%%' % (test_perf * 100)
         # evaluation for each model id in data['test']['id']
-        self.compute_and_save_performance_models("test")
+        test_perfs = self.compute_and_save_performance_models("test")
+        test_perf = np.average(test_perfs)
+        print 'test_perf: %f%%' % (test_perf * 100)
 
     def plot_score_per_length(self, scope='train'):
         """
@@ -492,12 +494,13 @@ class Model:
             elif 'c_tfidf' in model_name: model_name = 'TF-IDF'
             plt.plot(range(len(accuracies)), accuracies, colors[i], label=model_name)
         plt.legend(loc='lower right', fontsize='small')
+        plt.grid(True, axis='y')
+        plt.axes()
         plt.xlabel('epoch')
         plt.ylabel('Discriminator Accuracy')
         plt.savefig('plot_%s_accuracies.png' % scope)
         plt.close(fig)
         print "saved plot."
-
 
     def train(self, n_epochs=100, patience=10, verbose=True):
         """
@@ -509,6 +512,42 @@ class Model:
         best_val_perf = 0   # keep track of best validation score
         test_perf = 0       # keep track of current test score
         test_probas = None  # keep track of current best probabilities
+
+        # if we resumed training, reset variables to their previous value:
+        if 'train' in self.timings and 'val' in self.timings and 'test' in self.timings\
+                and len(self.timings['train']) > 0 and len(self.timings['val']) > 0 and len(self.timings['test']) > 0:
+            assert 'true' in self.timings['train']
+            # Reset epoch:
+            epoch = len(self.timings['train']['true'])
+            print "reset epoch:", epoch
+
+            # Reset best_val_perf:
+            average_val_perf = []  # average validation performance of all models over each epochs
+            for model, val_perfs in self.timings['val'].iteritems():
+                if len(average_val_perf) == 0:
+                    average_val_perf = val_perfs
+                else:
+                    assert len(average_val_perf) == len(val_perfs)
+                    # add the performance of that model over all time steps i
+                    average_val_perf = [average_val_perf[i]+val_perfs[i] for i in range(len(val_perfs))]
+            # make it an average of all models over all time steps i:
+            average_val_perf = [average_val_perf[i]/len(self.timings['val']) for i in range(len(average_val_perf))]
+            best_val_perf = np.max(average_val_perf)
+            print "reset best_val_perf:", best_val_perf
+
+            # Reset test_perf:
+            average_test_perf = []  # average test performance of all models over each epochs
+            for model, test_perfs in self.timings['test'].iteritems():
+                if len(average_test_perf) == 0:
+                    average_test_perf = test_perfs
+                else:
+                    assert len(average_test_perf) == len(test_perfs)
+                    # add the performance of that model over all time steps i
+                    average_test_perf = [average_test_perf[i]+test_perfs[i] for i in range(len(test_perfs))]
+            # make it an average of all models over all time steps i:
+            average_test_perf = [average_test_perf[i]/len(self.timings['test']) for i in range(len(average_test_perf))]
+            test_perf = average_test_perf[-1]
+            print "reset test_perf:", test_perf
 
         n_train_batches = len(self.data['train']['y']) // self.batch_size
         n_val_batches = len(self.data['val']['y']) // self.batch_size
@@ -544,55 +583,60 @@ class Model:
             ###
             # Compute TRAIN performance:
             ###
-            train_losses = [self.compute_loss(self.data['train'], i) for i in xrange(n_train_batches)]  # number of wrong predictions for each batch
-            train_perf = 1 - np.sum(train_losses) / len(self.data['train']['y'])  # 1 - total number of errors / total number of examples
-            print "epoch %i: train perf %f%%" % (epoch, train_perf*100)
+            print "\nEvaluating Training set:"
             # evaluation for each model id in data['train']['id']
-            self.compute_and_save_performance_models("train")
+            train_perfs = self.compute_and_save_performance_models("train")
+            train_perf = np.average(train_perfs)
+            print "epoch %i: train perf %f%%" % (epoch, train_perf*100)
 
             ###
             # Compute VALIDATION performance:
             ###
-            val_losses = [self.compute_loss(self.data['val'], i) for i in xrange(n_val_batches)]  # number of wrong predictions for each batch
-            val_perf = 1 - np.sum(val_losses) / len(self.data['val']['y'])  # 1 - total number of errors / total number of examples
-            print 'epoch %i: val_perf %f%%' % (epoch, val_perf*100)
+            print "\nEvaluating Validation set:"
             # evaluation for each model id in data['val']['id']
-            #self.compute_and_save_performance_models("val")
+            val_perfs = self.compute_and_save_performance_models("val")
+            val_perf = np.average(val_perfs)
+            print 'epoch %i: val_perf %f%%' % (epoch, val_perf*100)
 
             ###
             # If doing better on validation set, measure each model test performance and same model parameters!
             ###
             if val_perf > best_val_perf:
-                print "\nImproved validation score!"
+                print "Improved average validation score!"
                 best_val_perf = val_perf
                 patience = self.patience  # reset patience to initial value
 
                 # Compute TEST performance:
-                test_losses = [self.compute_loss(self.data['test'], i) for i in xrange(n_test_batches)]  # number of wrong predictions for each batch
-                test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]  # probability of being a true response for each batch
-                test_perf = 1 - np.sum(test_losses) / len(self.data['test']['y'])  # 1 - total number of errors / total number of examples
-                print 'epoch %i, test_perf %f%%' % (epoch, test_perf*100)
+                print "\nEvaluating Test set:"
                 # evaluation for each model id in data['test']['id']
-                self.compute_and_save_performance_models("test")
+                test_perfs = self.compute_and_save_performance_models("test")
+                test_perf = np.average(test_perfs)
+                print 'epoch %i, test_perf %f%%' % (epoch, test_perf*100)
+                # test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]  # probability of being a true response for each batch
 
                 # Save current best model parameters.
                 print "\nSaving current model parameters..."
-                with open('%s_best_weights.pkl' % self.save_prefix, 'wb') as handle:
+                with open('%s/%s_best_weights.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     params = [np.asarray(p.eval()) for p in lasagne.layers.get_all_params(self.l_out)]
                     cPickle.dump(params, handle, protocol=cPickle.HIGHEST_PROTOCOL)
-                with open('%s_best_embed.pkl' % self.save_prefix, 'wb') as handle:
+                with open('%s/%s_best_embed.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self.embeddings.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
-                with open('%s_best_M.pkl' % self.save_prefix, 'wb') as handle:
+                with open('%s/%s_best_M.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self.M.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 # Save performances.
-                with open('%s_timings.pkl' % self.save_prefix, 'wb') as handle:
+                print "\nSaving performances..."
+                with open('%s/%s_timings.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self.timings, handle, protocol=cPickle.HIGHEST_PROTOCOL)
-                print "Saved.\n"
+                # Save model.
+                print "\nSaving model..."
+                with open("%s/%s_model.pkl" % (self.save_path, self.save_prefix), 'wb') as handle:
+                    cPickle.dump(self, handle, protocol=cPickle.HIGHEST_PROTOCOL)
+                print "Saved."
             else:
                 patience -= 1  # decrease patience
                 print "\nNo improvement! patience:", patience
 
-        return test_perf, test_probas
+        return test_perf  # , test_probas
 
     # TODO: never used!
     def compute_recall_ks(self, probas):
@@ -675,18 +719,23 @@ def main():
     parser.add_argument('--emb_penalty', type=float, default=0.001, help='Embedding penalty')
     parser.add_argument('--act_penalty', type=float, default=500, help='Activation penalty')
 
-    # Saving parameters:
-    parser.add_argument('--save_model', type='bool', default=False, help='Whether to save the model')
-    parser.add_argument('--save_prefix', type=str, default='twitter', help='prefix for all saved file names')
-
-    # Loading parameters:
-    parser.add_argument('--input_dir', type=str, default='.', help='Input dir')
+    # Loading data parameters:
+    parser.add_argument('--data_path', type=str, default='.', help='Path of the data to load')
     parser.add_argument('--dataset_fname', type=str, default='dataset.pkl', help='Dataset filename')
-    parser.add_argument('--W_fname', type=str, default='W.pkl', help='W filename')
+    parser.add_argument('--W_fname', type=str, default='W.pkl', help='Word embeddings filename')
     parser.add_argument('--train_examples', type=int, required=False, help='Number of training examples to keep')
     parser.add_argument('--sort_by_len', type='bool', default=False, help='Whether to sort examples by context length')
 
+    # Saving model parameters:
+    parser.add_argument('--save_path', type=str, default='.', help='Path where to save model')
+    parser.add_argument('--save_prefix', type=str, default='twitter', help='prefix for all saved file names')
+
+    # Loading model parameters:
+    parser.add_argument('--load_path', type=str, default='.', help='Path to load the model from')
+    parser.add_argument('--load_prefix', type=str, default='twitter', help='Prefix for all the model files to load')
+
     # Script parameters:
+    parser.add_argument('--resume', type='bool', default=False, help='Flag to decide if we should resume training from a pre-trained model or not.')
     parser.add_argument('--seed', type=int, default=4213, help='Random seed')
     parser.add_argument('--test', type='bool', default=False, help='Use the presaved model.')
 
@@ -696,9 +745,9 @@ def main():
 
     print "\nLoading data..."
     # data sets are dictionaries containing contexts, responses, flag
-    train_data, val_data, test_data = cPickle.load(open('%s/%s' % (args.input_dir, args.dataset_fname), 'rb'))
+    train_data, val_data, test_data = cPickle.load(open('%s/%s' % (args.data_path, args.dataset_fname), 'rb'))
     # W is the word embedding matrix and word2idx is a dictionary.
-    W, word2idx, idx2word = cPickle.load(open('%s/%s' % (args.input_dir, args.W_fname), 'rb'))
+    W, word2idx, idx2word = cPickle.load(open('%s/%s' % (args.data_path, args.W_fname), 'rb'))
     print "W.shape:", W.shape  # (5092,300) = word embedding for each vocab word
 
     print "Number of training examples: %d" % (len(train_data['c']))
@@ -713,89 +762,68 @@ def main():
         train_data['y'] = train_data['y'][:num_train_examples]
         print('New number of training examples: %d' % (len(train_data['c'])))
 
+    data = {'train': train_data, 'val': val_data, 'test': test_data}
     print("data loaded!")
-
-    data = { 'train' : train_data, 'val': val_data, 'test': test_data }
 
     # sort the training data by context length
     if args.sort_by_len:
         sort_by_len(data['train'])
 
-    print "\nCreating model..."
-    model = Model(
-        data=data,
-        W=W.astype(theano.config.floatX),
-        save_prefix=args.save_prefix,
-        max_seqlen=args.max_seqlen,                         # default 160
-        batch_size=args.batch_size,                         # default 256
-        # Network architecture:
-        encoder=args.encoder,                               # default RNN
-        hidden_size=args.hidden_size,                       # default 200
-        n_recurrent_layers=args.n_recurrent_layers,         # default 1
-        is_bidirectional=args.is_bidirectional,             # default False
-        # Learning parameters:
-        patience=args.patience,                             # default 10
-        optimizer=args.optimizer,                           # default ADAM
-        lr=args.lr,                                         # default 0.001
-        lr_decay=args.lr_decay,                             # default 0.95
-        fine_tune_W=args.fine_tune_W,                       # default False
-        fine_tune_M=args.fine_tune_M,                       # default False
-        # NTN parameters:
-        use_ntn=args.use_ntn,                               # default False
-        k=args.k,                                           # default 4
-        # Regularization parameters:
-        penalize_emb_norm=args.penalize_emb_norm,           # default False
-        penalize_emb_drift=args.penalize_emb_drift,         # default False
-        emb_penalty=args.emb_penalty,                       # default 0.001
-        penalize_activations=args.penalize_activations,     # default False
-        act_penalty=args.act_penalty                        # default 500
-    )
-    print "Model created."
+    if args.resume or args.test:
+        print "\nLoading model..."
+        with open('%s/%s_model.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
+            model = cPickle.load(handle)
+            model.data = data  # in cases when we want to test or resume with new data
+        print "Model loaded."
+    else:
+        print "\nCreating model..."
+        model = Model(
+            data=data,
+            W=W.astype(theano.config.floatX),
+            save_path=args.save_path,
+            save_prefix=args.save_prefix,
+            max_seqlen=args.max_seqlen,                         # default 160
+            batch_size=args.batch_size,                         # default 256
+            # Network architecture:
+            encoder=args.encoder,                               # default RNN
+            hidden_size=args.hidden_size,                       # default 200
+            n_recurrent_layers=args.n_recurrent_layers,         # default 1
+            is_bidirectional=args.is_bidirectional,             # default False
+            # Learning parameters:
+            patience=args.patience,                             # default 10
+            optimizer=args.optimizer,                           # default ADAM
+            lr=args.lr,                                         # default 0.001
+            lr_decay=args.lr_decay,                             # default 0.95
+            fine_tune_W=args.fine_tune_W,                       # default False
+            fine_tune_M=args.fine_tune_M,                       # default False
+            # NTN parameters:
+            use_ntn=args.use_ntn,                               # default False
+            k=args.k,                                           # default 4
+            # Regularization parameters:
+            penalize_emb_norm=args.penalize_emb_norm,           # default False
+            penalize_emb_drift=args.penalize_emb_drift,         # default False
+            emb_penalty=args.emb_penalty,                       # default 0.001
+            penalize_activations=args.penalize_activations,     # default False
+            act_penalty=args.act_penalty                        # default 500
+        )
+        print "Model created."
 
     # If testing a pre-saved model
     if args.test:
-        "\nWill test the model:"
-        # load parameter values into the network
-        print "loading trained weights..."
-        with open('%s_best_weights.pkl' % args.save_prefix, 'rb') as handle:
-            params = cPickle.load(handle)
-            lasagne.layers.set_all_param_values(model.l_out, params)
-        # load the M matrix: (from c.M.r)
-        print "loading M matrix..."
-        with open('%s_best_M.pkl' % args.save_prefix, 'rb') as handle:
-            M = cPickle.load(handle)
-            model.M.set_value(M)
-        # load the word embeddings: W matrix
-        print "loading W matrix..."
-        with open('%s_best_embed.pkl' % args.save_prefix, 'rb') as handle:
-            em = cPickle.load(handle)
-            model.embeddings.set_value(em)
-        # load timings:
-        print "loading timings..."
-        with open('%s_timings.pkl' % args.save_prefix, 'rb') as handle:
-            timings = cPickle.load(handle)
-            model.timings = timings
-
+        "\nTesting the model..."
         # run the test function
-        # print "Testing model..."
         # model.test()
         # model.plot_score_per_length('test')
         model.plot_learning_curves('train')
-        model.plot_learning_curves('test')
+        model.plot_learning_curves('val')
 
     # If training the model
     else:
         "\nTraining model..."
-        test_perf, test_probas = model.train(n_epochs=args.n_epochs, patience=args.patience, verbose=False)
+        test_perf = model.train(n_epochs=args.n_epochs, patience=args.patience, verbose=False)
         "Model trained."
         print "test_perfs =", test_perf
-        print "test_probas =", test_probas
-
-        if args.save_model:
-            print "\nSaving model..."
-            cPickle.dump(model, open("%s_model.pkl" % args.save_prefix, 'wb'))
-            cPickle.dump(test_probas, open('%s_probas.pkl' % args.save_prefix, 'wb'))
-            print "Model saved."
+        # print "test_probas =", test_probas
 
 if __name__ == '__main__':
   main()
