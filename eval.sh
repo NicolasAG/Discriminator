@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 
 THEANO_FLAGS='floatX=float32,device=gpu0' python main.py \
-    --encoder 'lstm' \
-    --batch_size 512 \
-    --hidden_size 100 \
-    --optimizer 'adam' \
-    --lr 0.001 \
-    --fine_tune_W True \
-    --fine_tune_M True \
     --input_dir './twitter_dataset' \
-    --dataset_fname 'dataset_twitter_bpe.pkl' \
-    --W_fname 'W_twitter_bpe.pkl' \
+    --dataset_fname 'dataset_HREDx2-VHREDx2-cTFIDF-RND-TRUE_twitter_bpe.pkl' \
+    --W_fname 'W_HREDx2-VHREDx2-cTFIDF-RND-TRUE_300_twitter_bpe.pkl' \
+    --save_prefix 'lstm-100_adam_HREDx2-VHREDx2-cTFIDF-RND-TRUE_twitter' \
+    --batch_size 500 \
+    --encoder 'lstm' \
+    --hidden_size 100 \
+    --is_bidirectional False \
+    --n_recurrent_layers 1 \
+    --optimizer 'adam' \
     --test True
-

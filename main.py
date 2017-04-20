@@ -9,6 +9,10 @@ import theano
 import theano.tensor as T
 import time
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+
 sys.setrecursionlimit(10000)
 
 
@@ -442,6 +446,59 @@ class Model:
         # evaluation for each model id in data['test']['id']
         self.compute_and_save_performance_models("test")
 
+    def plot_score_per_length(self, scope='train'):
+        """
+        Compute the probability of each response being true and plot according to length of the response
+        :param scope: scope of the data to look at: 'train' or 'val' or 'test'
+        :return: None, plot instead.
+        """
+        print "Get probabilities of each response in data[%s]..." % scope
+        n_batches = len(self.data[scope]['y']) // self.batch_size
+        length_to_scores = {}
+        for i in xrange(n_batches):  # i = batch index
+            probas = self.compute_probas(self.data[scope], i)  # probabilities of each response within that batch of being true
+            lengths = [len(resp) for resp in self.data[scope]['r'][i*len(probas):(i+1)*len(probas)]]
+            for j, l in enumerate(lengths):  # j = response index
+                if l not in length_to_scores:
+                    length_to_scores[l] = [probas[j]]
+                else:
+                    length_to_scores[l].append(probas[j])
+        print "number of different lengths:", len(length_to_scores)
+
+        fig = plt.figure()
+        plt.plot(length_to_scores.keys(), [np.average(p) for p in length_to_scores.values()], 'r-')
+        plt.legend(loc='upper left')
+        plt.xlabel('Response Length')
+        plt.ylabel('Avg. Score')
+        plt.savefig('plot_length-score.png')
+        plt.close(fig)
+        print "saved plot."
+
+    def plot_learning_curves(self, scope):
+        """
+        Plot accuracy curves of each model within a specified scope
+        :param scope: scope of the data to look at: 'train' or 'val' or 'test'
+        :return: None, plot instead
+        """
+        colors = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-']
+        fig = plt.figure()
+        for i, (model_name, accuracies) in enumerate(self.timings[scope].iteritems()):
+            if '/VHRED/' in model_name:
+                if 'Stochastic' in model_name: model_name = 'VHRED-rnd'
+                elif 'BeamSearch_5' in model_name: model_name = 'VHRED-beam5'
+            elif '/HRED/' in model_name:
+                if 'Stochastic' in model_name: model_name = 'HRED-rnd'
+                elif 'BeamSearch_5' in model_name: model_name = 'HRED-beam5'
+            elif 'c_tfidf' in model_name: model_name = 'TF-IDF'
+            plt.plot(range(len(accuracies)), accuracies, colors[i], label=model_name)
+        plt.legend(loc='lower right', fontsize='small')
+        plt.xlabel('epoch')
+        plt.ylabel('Discriminator Accuracy')
+        plt.savefig('plot_%s_accuracies.png' % scope)
+        plt.close(fig)
+        print "saved plot."
+
+
     def train(self, n_epochs=100, patience=10, verbose=True):
         """
         Train the model
@@ -700,22 +757,31 @@ def main():
         "\nWill test the model:"
         # load parameter values into the network
         print "loading trained weights..."
-        with open('weights_%s_best.pkl' % args.encoder, 'rb') as handle:
+        with open('%s_best_weights.pkl' % args.save_prefix, 'rb') as handle:
             params = cPickle.load(handle)
             lasagne.layers.set_all_param_values(model.l_out, params)
         # load the M matrix: (from c.M.r)
         print "loading M matrix..."
-        with open('M_%s_best.pkl' % args.encoder, 'rb') as handle:
+        with open('%s_best_M.pkl' % args.save_prefix, 'rb') as handle:
             M = cPickle.load(handle)
             model.M.set_value(M)
         # load the word embeddings: W matrix
         print "loading W matrix..."
-        with open('embed_%s_best.pkl' % args.encoder, 'rb') as handle:
+        with open('%s_best_embed.pkl' % args.save_prefix, 'rb') as handle:
             em = cPickle.load(handle)
             model.embeddings.set_value(em)
+        # load timings:
+        print "loading timings..."
+        with open('%s_timings.pkl' % args.save_prefix, 'rb') as handle:
+            timings = cPickle.load(handle)
+            model.timings = timings
+
         # run the test function
-        print "Testing model..."
-        model.test()
+        # print "Testing model..."
+        # model.test()
+        # model.plot_score_per_length('test')
+        model.plot_learning_curves('train')
+        model.plot_learning_curves('test')
 
     # If training the model
     else:
