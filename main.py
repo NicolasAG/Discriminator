@@ -515,7 +515,9 @@ class Model:
         test_perf = 0       # keep track of current test score
         test_probas = None  # keep track of current best probabilities
 
-        # if we resumed training, reset variables to their previous value:
+        ###
+        # RESUMED TRAINING - RESET VARIABLES:
+        ###
         if 'train' in self.timings and 'val' in self.timings and 'test' in self.timings\
                 and len(self.timings['train']) > 0 and len(self.timings['val']) > 0 and len(self.timings['test']) > 0:
             assert 'true' in self.timings['train']
@@ -608,12 +610,13 @@ class Model:
                 best_val_perf = val_perf
                 patience = self.patience  # reset patience to initial value
 
+                ###
                 # Compute TEST performance:
-                print "\nEvaluating Test set:"
-                # evaluation for each model id in data['test']['id']
-                test_perfs = self.compute_and_save_performance_models("test")
-                test_perf = np.average(test_perfs)
-                print 'epoch %i, test_perf %f%%' % (epoch, test_perf*100)
+                ###
+                # print "\nEvaluating Test set:"
+                # test_perfs = self.compute_and_save_performance_models("test")
+                # test_perf = np.average(test_perfs)
+                # print 'epoch %i, test_perf %f%%' % (epoch, test_perf*100)
                 # test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]  # probability of being a true response for each batch
 
                 # Save current best model parameters.
@@ -814,7 +817,7 @@ def main():
     if args.test:
         "\nTesting the model..."
         # run the test function
-        # model.test()
+        model.test()
         # model.plot_score_per_length('test')
         model.plot_learning_curves('train')
         model.plot_learning_curves('val')
