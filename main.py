@@ -436,6 +436,8 @@ class Model:
             print '%s_perf: %f%%' % (scope, perf * 100)
             self.save_performance(scope, model_name, perf)  # save performance of the discriminator for that model under this scope
 
+        return performances
+
 
     def test(self):
         """
