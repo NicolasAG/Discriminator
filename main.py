@@ -474,7 +474,7 @@ class Model:
         plt.legend(loc='upper left')
         plt.xlabel('Response Length')
         plt.ylabel('Avg. Score')
-        plt.savefig('plot_length-score.png')
+        plt.savefig('./plots/plot_length-score.png')
         plt.close(fig)
         print "saved plot."
 
@@ -500,7 +500,7 @@ class Model:
         plt.axes()
         plt.xlabel('epoch')
         plt.ylabel('Discriminator Accuracy')
-        plt.savefig('plot_%s_accuracies.png' % scope)
+        plt.savefig('./plots/plot_%s_accuracies.png' % scope)
         plt.close(fig)
         print "saved plot."
 
