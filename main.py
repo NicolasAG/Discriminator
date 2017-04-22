@@ -628,10 +628,6 @@ class Model:
                     cPickle.dump(self.embeddings.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 with open('%s/%s_best_M.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self.M.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
-                # Save performances.
-                print "\nSaving performances..."
-                with open('%s/%s_timings.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
-                    cPickle.dump(self.timings, handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 # Save model.
                 print "\nSaving model..."
                 with open("%s/%s_model.pkl" % (self.save_path, self.save_prefix), 'wb') as handle:
@@ -640,6 +636,11 @@ class Model:
             else:
                 patience -= 1  # decrease patience
                 print "\nNo improvement! patience:", patience
+
+            # In any case, save performances.
+            print "\nSaving performances..."
+            with open('%s/%s_timings.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
+                cPickle.dump(self.timings, handle, protocol=cPickle.HIGHEST_PROTOCOL)
 
         return test_perf  # , test_probas
 
