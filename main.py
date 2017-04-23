@@ -448,7 +448,7 @@ class Model:
         # evaluation for each model id in data['test']['id']
         test_perfs = self.compute_and_save_performance_models("test")
         test_perf = np.average(test_perfs)
-        print 'test_perf: %f%%' % (test_perf * 100)
+        print '\nAverage test_perf: %f%%' % (test_perf * 100)
 
     def plot_score_per_length(self, scope='train'):
         """
@@ -497,7 +497,6 @@ class Model:
             plt.plot(range(len(accuracies)), accuracies, colors[i], label=model_name)
         plt.legend(loc='lower right', fontsize='small')
         plt.grid(True, axis='y')
-        plt.axes()
         plt.xlabel('epoch')
         plt.ylabel('Discriminator Accuracy')
         plt.savefig('./plots/plot_%s_accuracies.png' % scope)
@@ -780,6 +779,9 @@ def main():
         with open('%s/%s_model.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
             model = cPickle.load(handle)
             model.data = data  # in cases when we want to test or resume with new data
+        with open('%s/%s_timings.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
+            timings = cPickle.load(handle)
+            model.timings = timings  # load last timings (when no improvement was done)
         print "Model loaded."
     else:
         print "\nCreating model..."
@@ -817,11 +819,9 @@ def main():
     # If testing a pre-saved model
     if args.test:
         "\nTesting the model..."
-        # run the test function
-        model.test()
-        # model.plot_score_per_length('test')
         model.plot_learning_curves('train')
         model.plot_learning_curves('val')
+        model.test()
 
     # If training the model
     else:
