@@ -8,12 +8,25 @@ import sys
 import theano
 import theano.tensor as T
 import time
+import collections
+from scipy.stats import pearsonr, spearmanr
 
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
 sys.setrecursionlimit(10000)
+
+
+def string2indices(p_str, str_to_idx):
+    """
+    Lookup dictionary from word to index to retrieve the list of indices from a string of words.
+    If bpe is present, will automatically convert regular string p_str to bpe formatted string.
+    :param p_str: string of words corresponding to indices.
+    :param str_to_idx: contains the mapping from words to indices.
+    :return: a new list of indices corresponding to the given string of words.
+    """
+    return [str_to_idx[w] for w in p_str.strip().split() if w in str_to_idx]
 
 
 class Model:
@@ -322,12 +335,13 @@ class Model:
             allow_input_downcast=True
         )
 
-    def set_shared_variables(self, dataset, index):
+    def set_shared_variables(self, dataset, index, training):
         """
         Set shared variables for that batch index.
         Set context and response: value, mask and length
         :param dataset: dictionary of contexts, responses, and flags
         :param index: batch index to work on
+        :param training: if true, dataset['y'] is required, else not used
         :return: None
         """
         def get_batch(dataset, index):
@@ -350,40 +364,44 @@ class Model:
 
         c, c_seqlen, c_mask = get_batch(dataset['c'], index)
         r, r_seqlen, r_mask = get_batch(dataset['r'], index)
-        y = np.array(dataset['y'][index*self.batch_size:(index+1)*self.batch_size], dtype=np.int32)
+        if training:
+            y = np.array(dataset['y'][index*self.batch_size:(index+1)*self.batch_size], dtype=np.int32)
+            self.shared_data['y'].set_value(y)
         self.shared_data['c'].set_value(c)
         self.shared_data['r'].set_value(r)
-        self.shared_data['y'].set_value(y)
         self.shared_data['c_seqlen'].set_value(c_seqlen)
         self.shared_data['r_seqlen'].set_value(r_seqlen)
         self.shared_data['c_mask'].set_value(c_mask)
         self.shared_data['r_mask'].set_value(r_mask)
 
-    def compute_probas(self, dataset, index):
+    def compute_probas(self, dataset, index, training=False):
         """
         :param dataset: dictionary of contexts, responses, flags
         :param index: current batch index
+        :param training: if true, dataset['y'] is required, else assumed not required
         :return: array of probability of being a good response for each context-response pair in the batch
         """
-        self.set_shared_variables(dataset, index)
+        self.set_shared_variables(dataset, index, training)
         return self.get_probas()[:,1]  # [:, 1] <=> Pr(y=1)
 
-    def compute_pred(self, dataset, index):
+    def compute_pred(self, dataset, index, training=False):
         """
         :param dataset: dictionary of contexts, responses, flags
         :param index: current batch index
+        :param training: if true, dataset['y'] is required, else assumed not required
         :return: array of predictions for each context-response pair in that batch
         """
-        self.set_shared_variables(dataset, index)
+        self.set_shared_variables(dataset, index, training)
         return self.get_pred()
 
-    def compute_loss(self, dataset, index):
+    def compute_loss(self, dataset, index, training=True):
         """
         :param dataset: dictionary of contexts, responses, flags
         :param index: current batch index
+        :param training: if true, dataset['y'] is required, else assumed not required
         :return: number of prediction not equal to y in the batch
         """
-        self.set_shared_variables(dataset, index)
+        self.set_shared_variables(dataset, index, training)
         return self.get_loss()
 
     def save_performance(self, scope, model_name, perf):
@@ -456,9 +474,11 @@ class Model:
         :param scope: scope of the data to look at: 'train' or 'val' or 'test'
         :return: None, plot instead.
         """
-        print "Get probabilities of each response in data[%s]..." % scope
-        n_batches = len(self.data[scope]['y']) // self.batch_size
+        print "\nGet probabilities of each response in data[%s]..." % scope
+        n_batches = len(self.data[scope]['r']) // self.batch_size
         length_to_scores = {}
+        all_lengths = [len(resp) for resp in self.data[scope]['r']]
+        all_probas = []
         for i in xrange(n_batches):  # i = batch index
             probas = self.compute_probas(self.data[scope], i)  # probabilities of each response within that batch of being true
             lengths = [len(resp) for resp in self.data[scope]['r'][i*len(probas):(i+1)*len(probas)]]
@@ -467,16 +487,35 @@ class Model:
                     length_to_scores[l] = [probas[j]]
                 else:
                     length_to_scores[l].append(probas[j])
-        print "number of different lengths:", len(length_to_scores)
+            all_probas.extend(probas)
 
+        # Plot for all points: score by length
+        print "[%s]lengths: %d" % (scope, len(all_lengths))
+        print "[%s]probas: %d" % (scope, len(all_probas))
+        n = min(len(all_lengths), len(all_probas))
+        fig = plt.figure()
+        plt.plot(all_lengths[:n], all_probas[:n], 'r.')
+        plt.title('Length - Score correlation')
+        plt.xlabel('Response Length')
+        plt.ylabel('Discriminator Score')
+        plt.savefig('./plots/plot_%s_length-score_dots.png' % scope)
+        plt.close(fig)
+
+        print "[%s]score--length pearson: %s" % (scope, pearsonr(all_lengths[:n], all_probas[:n]))
+        print "[%s]score--length spearman: %s" % (scope, spearmanr(all_lengths[:n], all_probas[:n]))
+
+        # Plot average score by length
+        print "[%s]number of different lengths: %d" % (scope, len(length_to_scores))
+        # Order dictionary by keys (by response length)
+        length_to_scores = collections.OrderedDict(sorted(length_to_scores.items()))
         fig = plt.figure()
         plt.plot(length_to_scores.keys(), [np.average(p) for p in length_to_scores.values()], 'r-')
-        plt.legend(loc='upper left')
+        plt.title('Length - Score correlation')
         plt.xlabel('Response Length')
         plt.ylabel('Avg. Score')
-        plt.savefig('./plots/plot_length-score.png')
+        plt.savefig('./plots/plot_%s_length-score.png' % scope)
         plt.close(fig)
-        print "saved plot."
+        print "[%s]saved plots." % scope
 
     def plot_learning_curves(self, scope):
         """
@@ -500,6 +539,38 @@ class Model:
         plt.xlabel('epoch')
         plt.ylabel('Discriminator Accuracy')
         plt.savefig('./plots/plot_%s_accuracies.png' % scope)
+        plt.close(fig)
+        print "saved plot."
+
+    def plot_human_correlation(self, data):
+        print "\nGet probabilities of each response..."
+        n_batches = len(data['r']) // self.batch_size
+        all_human_scores = [s for s in data['score']]
+        all_discriminator_scores = []
+        human_to_disc = {}
+        for i in xrange(n_batches):  # i = batch index
+            probas = self.compute_probas(data, i)  # probabilities of each response within that batch of being true
+            scores = [s for s in data['score'][i*len(probas): (i+1)*len(probas)]]
+            for j, s in enumerate(scores):  # j = context-response-score triple index
+                if s not in human_to_disc:
+                    human_to_disc[s] = [probas[j]]
+                else:
+                    human_to_disc[s].append(probas[j])
+            all_discriminator_scores.extend(probas)
+
+        n = min(len(all_human_scores), len(all_discriminator_scores))
+        print "discriminator--human pearson:", pearsonr(all_human_scores[:n], all_discriminator_scores[:n])
+        print "discriminator--human spearman:", spearmanr(all_human_scores[:n], all_discriminator_scores[:n])
+
+        print "number of different scores:", len(human_to_disc)
+        # Order dictionary by keys (by human scores)
+        human_to_disc = collections.OrderedDict(sorted(human_to_disc.items()))
+        fig = plt.figure()
+        plt.boxplot([human_to_disc[s] for s in human_to_disc.keys()], labels=human_to_disc.keys())
+        plt.title('Human - Discriminator score correlation')
+        plt.xlabel('human score')
+        plt.ylabel('discriminator score')
+        plt.savefig('./plots/plot_human-disc_scores.png')
         plt.close(fig)
         print "saved plot."
 
@@ -571,7 +642,7 @@ class Model:
             ############################
             for minibatch_index in range(n_train_batches):
                 # Set context, response, flag, mask, and other variables for that batch index
-                self.set_shared_variables(self.data['train'], minibatch_index)
+                self.set_shared_variables(self.data['train'], minibatch_index, training=True)
                 # Train model on this current batch
                 batch_cost = self.train_model()
                 if verbose: print "epoch %i: batch %i/%i cost: %f" % (epoch, minibatch_index+1, n_train_batches, batch_cost)
@@ -742,7 +813,11 @@ def main():
     # Script parameters:
     parser.add_argument('--resume', type='bool', default=False, help='Flag to decide if we should resume training from a pre-trained model or not.')
     parser.add_argument('--seed', type=int, default=4213, help='Random seed')
-    parser.add_argument('--test', type='bool', default=False, help='Use the presaved model.')
+    parser.add_argument('--test', type='bool', default=False, help='Get test accuracies with pre-saved model')
+    # Plot parameters:
+    parser.add_argument('--plot_human_scores', type='bool', default=False, help='Plot model score correlation with human scores')
+    parser.add_argument('--plot_response_length', type='bool', default=False, help='Plot model score correlation with response length')
+    parser.add_argument('--plot_learning_curves', type='bool', default=False, help='Plot train & val learning curves')
 
     args = parser.parse_args()
     print 'args:', args
@@ -816,13 +891,45 @@ def main():
         )
         print "Model created."
 
+    # Get correlation with Human scores:
+    if args.plot_human_scores:
+        # Load human scores
+        print "\nLoading human score data..."
+        with open('../data/twitter/human_scores-vhred_embeddings.pkl', 'rb') as handle:
+            vhred_embeddings = cPickle.load(handle)
+
+        human_scores = {'c': [], 'r': [], 'score': []}
+        for data in vhred_embeddings:
+            # data of the form {'c':<str>, 'r_gt':<str>, 'r_models':{
+            #     'hred':<str>, 'tfidf':<str>, 'de':<str>, 'human':<str>
+            # }, ... }
+            for model_responses in data['r_models'].values():
+                # model_responses of the form [<str>, <score>, <??>]
+                resp = model_responses[0]
+                score = model_responses[1]
+                human_scores['c'].append(string2indices(data['c'], word2idx))
+                human_scores['r'].append(string2indices(resp, word2idx))
+                human_scores['score'].append(score)
+
+        # normalize scores to 0-1 probability
+        scores = human_scores['score']
+        human_scores['score'] = (scores-np.min(scores)) / (np.max(scores)-np.min(scores))
+
+        model.plot_human_correlation(human_scores)
+
+    if args.plot_response_length:
+        model.plot_score_per_length('train')
+        model.plot_score_per_length('val')
+        model.plot_score_per_length('test')
+
+    if args.plot_learning_curves:
+        model.plot_learning_curves('train')
+        model.plot_learning_curves('val')
+
     # If testing a pre-saved model
     if args.test:
         "\nTesting the model..."
-        model.plot_learning_curves('train')
-        model.plot_learning_curves('val')
         model.test()
-
     # If training the model
     else:
         "\nTraining model..."
