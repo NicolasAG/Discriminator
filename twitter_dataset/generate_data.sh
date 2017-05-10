@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
 python combine_generated_data.py \
-    --embedding_size 300\
+    --embedding_size 300 \
+    --data_embeddings_prefix W \
     --data_fname_prefix dataset_HREDx2-VHREDx2-cTFIDF-RND-TRUE \
-    --data_embeddings_prefix W_HREDx2-VHREDx2-cTFIDF-RND-TRUE \
     --inputs \
         ../../data/twitter/ModelResponses/HRED/HRED_20KVocab_BeamSearch_5_GeneratedTrainResponses_TopResponse.txt \
         ../../data/twitter/ModelResponses/HRED/HRED_Stochastic_GeneratedTrainResponses.txt \

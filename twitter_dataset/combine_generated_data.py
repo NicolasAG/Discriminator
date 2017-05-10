@@ -63,16 +63,25 @@ def print_k(list, idx_2_str=None, twitter_bpe=None, k=10):
         print e
 
 
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    if v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.register('type', 'bool', lambda v: v.lower() in ("yes", "true", "t", "1"))
     parser.add_argument('--data_dir', type=str, default='.', help='Input/Output directory to find original data and save new data')
-    parser.add_argument('--inputs', nargs='+', type=str, required=True, help='File(s) of responses to be added')
+    parser.add_argument('--inputs', nargs='+', type=str, default=None, help='File(s) of responses to be added')
     parser.add_argument('--data_fname_prefix', type=str, default='dataset', help='File name of new data')
     parser.add_argument('--data_embeddings_prefix', type=str, default='W', help='File name of new data embeddings')
     parser.add_argument('--embedding_size', type=int, default=300, help='Size of word embedding')
-    parser.add_argument('--random_model', type=bool, default=True, help='Flag to add a random retrieval model as part of the new data')
-    parser.add_argument('--oversampling', type=bool, default=True, help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
+    parser.add_argument('--random_model', type=str2bool, default='True', help='Flag to add a random retrieval model as part of the new data')
+    parser.add_argument('--oversampling', type=str2bool, default='True', help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
     args = parser.parse_args()
     print "args: ", args
 
@@ -95,6 +104,11 @@ def main():
 
     print "original data loaded!"
 
+    print "contexts:"
+    print_k(contexts, twitter_bpe_idx_to_str, twitter_bpe)
+    print "true responses:"
+    print_k(true_responses, twitter_bpe_idx_to_str, twitter_bpe)
+
     ###
     # LOAD GENERATED DATA
     ###
@@ -102,27 +116,24 @@ def main():
 
     # HRED, VHRED, c_tfidf, r_tfidf, random, true
 
-    print "contexts:"
-    print_k(contexts, twitter_bpe_idx_to_str, twitter_bpe)
-    for response_file_name in args.inputs:
-        print "\nProcessing ", response_file_name, "..."
-        generated_data = open(response_file_name, 'rb')
+    if args.inputs:
+        for response_file_name in args.inputs:
+            print "\nProcessing ", response_file_name, "..."
+            generated_data = open(response_file_name, 'rb')
 
-        # Get the responses
-        generated_str_responses = []
-        for line in generated_data:
-            line = line.replace(' </s>\n', '')
-            generated_str_responses.append(line.replace('\n', ''))
+            # Get the responses
+            generated_str_responses = []
+            for line in generated_data:
+                line = line.replace(' </s>\n', '')
+                generated_str_responses.append(line.replace('\n', ''))
 
-        generated_bpe_responses = map(lambda r: string2indices(r, twitter_bpe_str_to_idx, twitter_bpe), generated_str_responses)
+            generated_bpe_responses = map(lambda r: string2indices(r, twitter_bpe_str_to_idx, twitter_bpe), generated_str_responses)
 
-        assert len(generated_bpe_responses) == len(contexts)
-        model_responses[response_file_name] = generated_bpe_responses
+            assert len(generated_bpe_responses) == len(contexts)
+            model_responses[response_file_name] = generated_bpe_responses
 
-        print_k(generated_str_responses)
-        print "Finished processing file ", response_file_name
-    print "true responses:"
-    print_k(true_responses, twitter_bpe_idx_to_str, twitter_bpe)
+            print_k(generated_str_responses)
+            print "Finished processing file ", response_file_name
 
     ###
     # CREATE THE DATA SET
