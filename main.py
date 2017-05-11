@@ -589,7 +589,7 @@ class Model:
         # RESUMED TRAINING - RESET VARIABLES:
         ###
         if 'train' in self.timings and 'val' in self.timings and 'test' in self.timings\
-                and len(self.timings['train']) > 0 and len(self.timings['val']) > 0 and len(self.timings['test']) > 0:
+                and len(self.timings['train']) > 0 and len(self.timings['val']) > 0:
             assert 'true' in self.timings['train']
             # Reset epoch:
             epoch = len(self.timings['train']['true'])
@@ -609,19 +609,20 @@ class Model:
             best_val_perf = np.max(average_val_perf)
             print "reset best_val_perf:", best_val_perf
 
-            # Reset test_perf:
-            average_test_perf = []  # average test performance of all models over each epochs
-            for model, test_perfs in self.timings['test'].iteritems():
-                if len(average_test_perf) == 0:
-                    average_test_perf = test_perfs
-                else:
-                    assert len(average_test_perf) == len(test_perfs)
-                    # add the performance of that model over all time steps i
-                    average_test_perf = [average_test_perf[i]+test_perfs[i] for i in range(len(test_perfs))]
-            # make it an average of all models over all time steps i:
-            average_test_perf = [average_test_perf[i]/len(self.timings['test']) for i in range(len(average_test_perf))]
-            test_perf = average_test_perf[-1]
-            print "reset test_perf:", test_perf
+            if len(self.timings['test']) > 0:
+                # Reset test_perf:
+                average_test_perf = []  # average test performance of all models over each epochs
+                for model, test_perfs in self.timings['test'].iteritems():
+                    if len(average_test_perf) == 0:
+                        average_test_perf = test_perfs
+                    else:
+                        assert len(average_test_perf) == len(test_perfs)
+                        # add the performance of that model over all time steps i
+                        average_test_perf = [average_test_perf[i]+test_perfs[i] for i in range(len(test_perfs))]
+                # make it an average of all models over all time steps i:
+                average_test_perf = [average_test_perf[i]/len(self.timings['test']) for i in range(len(average_test_perf))]
+                test_perf = average_test_perf[-1]
+                print "reset test_perf:", test_perf
 
         n_train_batches = len(self.data['train']['y']) // self.batch_size
         n_val_batches = len(self.data['val']['y']) // self.batch_size
