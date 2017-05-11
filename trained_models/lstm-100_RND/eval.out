@@ -1,0 +1,43 @@
+Loading model...
+Model loaded.
+
+Loading human score data...
+
+Get probabilities of each response...
+discriminator--human pearson: (0.045144660467881598, 0.0042933604575949033)
+discriminator--human spearman: SpearmanrResult(correlation=0.084727700452896126, pvalue=8.0222551945111874e-08)
+number of different scores: 5
+saved plot.
+
+Get probabilities of each response in data[train]...
+[train]lengths: 1198496
+[train]probas: 1198000
+[train]score--length pearson: (0.0064971960518720416, 1.1482529247711908e-12)
+[train]score--length spearman: SpearmanrResult(correlation=0.016814076684854243, pvalue=1.2017349681292994e-75)
+[train]number of different lengths: 77
+[train]saved plots.
+
+Get probabilities of each response in data[val]...
+[val]lengths: 149812
+[val]probas: 149500
+[val]score--length pearson: (0.013052007979936107, 4.4936139286036653e-07)
+[val]score--length spearman: SpearmanrResult(correlation=0.023753678155081011, pvalue=4.0911243456160482e-20)
+[val]number of different lengths: 67
+[val]saved plots.
+
+Get probabilities of each response in data[test]...
+[test]lengths: 149812
+[test]probas: 149500
+[test]score--length pearson: (0.0052194188790935488, 0.043581141585522329)
+[test]score--length spearman: SpearmanrResult(correlation=0.014857388191188399, pvalue=9.1968629908247825e-09)
+[test]number of different lengths: 63
+[test]saved plots.
+saved plot.
+saved plot.
+evaluating rand
+test_perf: 76.561290%
+evaluating true
+test_perf: 85.133367%
+
+Average test_perf: 80.847329%
+

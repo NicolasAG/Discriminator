@@ -1,0 +1,43 @@
+Loading model...
+Model loaded.
+
+Loading human score data...
+
+Get probabilities of each response...
+discriminator--human pearson: (-0.010825795485465559, 0.49366612612503136)
+discriminator--human spearman: SpearmanrResult(correlation=-0.056840997208579457, pvalue=0.00032224922317733554)
+number of different scores: 5
+saved plot.
+
+Get probabilities of each response in data[train]...
+[train]lengths: 1198496
+[train]probas: 1198000
+[train]score--length pearson: (0.16094209363365997, 0.0)
+[train]score--length spearman: SpearmanrResult(correlation=0.17543068177735219, pvalue=0.0)
+[train]number of different lengths: 77
+[train]saved plots.
+
+Get probabilities of each response in data[val]...
+[val]lengths: 149812
+[val]probas: 149500
+[val]score--length pearson: (0.16310399378003662, 0.0)
+[val]score--length spearman: SpearmanrResult(correlation=0.17715572679490382, pvalue=0.0)
+[val]number of different lengths: 68
+[val]saved plots.
+
+Get probabilities of each response in data[test]...
+[test]lengths: 149812
+[test]probas: 149500
+[test]score--length pearson: (0.16383121244331947, 0.0)
+[test]score--length spearman: SpearmanrResult(correlation=0.17831586474972747, pvalue=0.0)
+[test]number of different lengths: 66
+[test]saved plots.
+saved plot.
+saved plot.
+evaluating true
+test_perf: 81.616960%
+evaluating ../../data/twitter/ModelResponses/TF-IDF/c_tfidf_TrainedResponses.txt
+test_perf: 71.206579%
+
+Average test_perf: 76.411769%
+

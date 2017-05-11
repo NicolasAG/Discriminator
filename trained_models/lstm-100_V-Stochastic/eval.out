@@ -1,0 +1,43 @@
+Loading model...
+Model loaded.
+
+Loading human score data...
+
+Get probabilities of each response...
+discriminator--human pearson: (-0.0071116512653276029, 0.65296612694959277)
+discriminator--human spearman: SpearmanrResult(correlation=-0.014540539357326639, pvalue=0.35789390216812955)
+number of different scores: 5
+saved plot.
+
+Get probabilities of each response in data[train]...
+[train]lengths: 1198496
+[train]probas: 1198000
+[train]score--length pearson: (0.19991249175750173, 0.0)
+[train]score--length spearman: SpearmanrResult(correlation=0.19978179749996944, pvalue=0.0)
+[train]number of different lengths: 75
+[train]saved plots.
+
+Get probabilities of each response in data[val]...
+[val]lengths: 149812
+[val]probas: 149500
+[val]score--length pearson: (0.20263446547770983, 0.0)
+[val]score--length spearman: SpearmanrResult(correlation=0.20190189767294531, pvalue=0.0)
+[val]number of different lengths: 64
+[val]saved plots.
+
+Get probabilities of each response in data[test]...
+[test]lengths: 149812
+[test]probas: 149500
+[test]score--length pearson: (0.20005132187146002, 0.0)
+[test]score--length spearman: SpearmanrResult(correlation=0.19795522276213473, pvalue=0.0)
+[test]number of different lengths: 62
+[test]saved plots.
+saved plot.
+saved plot.
+evaluating ../../data/twitter/ModelResponses/VHRED/VHRED_5000BPE_Stochastic_GeneratedTrainResponses.txt
+test_perf: 70.272074%
+evaluating true
+test_perf: 81.119002%
+
+Average test_perf: 75.695538%
+
