@@ -222,16 +222,16 @@ class Model:
             deterministic=False
         )
         # Encoding of the context: take the encoding at the end of the context (self.c_seqlen)
-        e_context = h_context[T.arange(batch_size), self.c_seqlen].reshape((batch_size, hidden_size))
+        self.e_context = h_context[T.arange(batch_size), self.c_seqlen].reshape((batch_size, hidden_size))
         # Encoding of the response: take the encoding at the end of the response (self.r_seqlen)
-        e_response = h_response[T.arange(batch_size), self.r_seqlen].reshape((batch_size, hidden_size))
+        self.e_response = h_response[T.arange(batch_size), self.r_seqlen].reshape((batch_size, hidden_size))
 
         if use_ntn:
-            dp = T.concatenate([T.batched_dot(e_context, T.dot(e_response, self.M[i])) for i in xrange(k)], axis=1)
-            dp += T.concatenate([e_context, e_response], axis=1).dot(self.V.T) + self.b
+            dp = T.concatenate([T.batched_dot(self.e_context, T.dot(self.e_response, self.M[i])) for i in xrange(k)], axis=1)
+            dp += T.concatenate([self.e_context, self.e_response], axis=1).dot(self.V.T) + self.b
             dp = self.f(dp).dot(self.U)
         else:
-            dp = T.batched_dot(e_context, T.dot(e_response, self.M.T))
+            dp = T.batched_dot(self.e_context, T.dot(self.e_response, self.M.T))
 
         o = T.nnet.sigmoid(dp)
         o = T.clip(o, 1e-7, 1.0-1e-7)  # clip output probabilities
@@ -305,35 +305,61 @@ class Model:
         }
 
         print "compiling theano functions..."
+        self.get_response_emb = theano.function(
+            inputs=[],
+            outputs=self.e_response,  # (batch_size, hidden_size)
+            givens=givens,
+            on_unused_input='ignore'
+        )
+        self.get_context_emb = theano.function(
+            inputs=[],
+            outputs=self.e_context,  # (batch_size, hidden_size)
+            givens=givens,
+            on_unused_input='ignore'
+        )
         self.train_model = theano.function(
             inputs=[],
             outputs=self.cost,
             updates=updates,
             givens=givens,
-            on_unused_input='ignore',
-            allow_input_downcast=True
+            on_unused_input='ignore'
         )
         self.get_probas = theano.function(
             inputs=[],
             outputs=self.probas,
             givens=givens,
-            on_unused_input='ignore',
-            allow_input_downcast=True
+            on_unused_input='ignore'
         )
         self.get_pred = theano.function(
             inputs=[],
             outputs=self.pred,
             givens=givens,
-            on_unused_input='ignore',
-            allow_input_downcast=True
+            on_unused_input='ignore'
         )
         self.get_loss = theano.function(
             inputs=[],
             outputs=self.errors,
             givens=givens,
-            on_unused_input='ignore',
-            allow_input_downcast=True
+            on_unused_input='ignore'
         )
+
+    def get_batch(self, dataset, index):
+        """
+        Get description of the data at a given batch index.
+        :param dataset: array of tokens (can represent either contexts or responses)
+        :param index: current index of the batch
+        :return: batch data, sequence length for each element in batch, mask for each element in batch
+        """
+        seqlen = np.zeros((self.batch_size,), dtype=np.int32)
+        mask = np.zeros((self.batch_size, self.max_seqlen), dtype=theano.config.floatX)
+        batch = np.zeros((self.batch_size, self.max_seqlen), dtype=np.int32)
+        data = dataset[index * self.batch_size:(index + 1) * self.batch_size]
+        for i, row in enumerate(data):
+            row = row[:self.max_seqlen]  # cut the sequence if longer than max_seqlen
+            batch[i, 0:len(row)] = row  # put the data into our batch
+            seqlen[i] = len(row) - 1  # max index for that batch element
+            mask[i, 0:len(row)] = 1  # put a '1' on the sequence, 0 else where
+        return batch, seqlen, mask
 
     def set_shared_variables(self, dataset, index, training):
         """
@@ -344,26 +370,8 @@ class Model:
         :param training: if true, dataset['y'] is required, else not used
         :return: None
         """
-        def get_batch(dataset, index):
-            """
-            Get description of the data at a given batch index.
-            :param dataset: array of tokens (can represent either contexts or responses)
-            :param index: current index of the batch
-            :return: batch data, sequence length for each element in batch, mask for each element in batch
-            """
-            seqlen = np.zeros((self.batch_size,), dtype=np.int32)
-            mask = np.zeros((self.batch_size, self.max_seqlen), dtype=theano.config.floatX)
-            batch = np.zeros((self.batch_size, self.max_seqlen), dtype=np.int32)
-            data = dataset[index * self.batch_size:(index + 1) * self.batch_size]
-            for i, row in enumerate(data):
-                row = row[:self.max_seqlen]  # cut the sequence if longer than max_seqlen
-                batch[i, 0:len(row)] = row  # put the data into our batch
-                seqlen[i] = len(row) - 1  # max index for that batch element
-                mask[i, 0:len(row)] = 1  # put a '1' on the sequence, 0 else where
-            return batch, seqlen, mask
-
-        c, c_seqlen, c_mask = get_batch(dataset['c'], index)
-        r, r_seqlen, r_mask = get_batch(dataset['r'], index)
+        c, c_seqlen, c_mask = self.get_batch(dataset['c'], index)
+        r, r_seqlen, r_mask = self.get_batch(dataset['r'], index)
         if training:
             y = np.array(dataset['y'][index*self.batch_size:(index+1)*self.batch_size], dtype=np.int32)
             self.shared_data['y'].set_value(y)
@@ -373,6 +381,30 @@ class Model:
         self.shared_data['r_seqlen'].set_value(r_seqlen)
         self.shared_data['c_mask'].set_value(c_mask)
         self.shared_data['r_mask'].set_value(r_mask)
+
+    def compute_response_embeddings(self, dataset, index):
+        """
+        :param dataset: list of responses
+        :param index: current batch index
+        :return: list of embeddings for that batch
+        """
+        r, r_seqlen, r_mask = self.get_batch(dataset, index)
+        self.shared_data['r'].set_value(r)
+        self.shared_data['r_seqlen'].set_value(r_seqlen)
+        self.shared_data['r_mask'].set_value(r_mask)
+        return self.get_response_emb()  # (batch_size, hidden_size)
+
+    def compute_context_embeddings(self, dataset, index, training=False):
+        """
+        :param dataset: list of contexts
+        :param index: current batch index
+        :return: list of embeddings for that batch
+        """
+        c, c_seqlen, c_mask = self.get_batch(dataset, index)
+        self.shared_data['c'].set_value(c)
+        self.shared_data['c_seqlen'].set_value(c_seqlen)
+        self.shared_data['c_mask'].set_value(c_mask)
+        return self.get_context_emb()  # (batch_size, hidden_size)
 
     def compute_probas(self, dataset, index, training=False):
         """
@@ -455,7 +487,6 @@ class Model:
             self.save_performance(scope, model_name, perf)  # save performance of the discriminator for that model under this scope
 
         return performances
-
 
     def test(self):
         """
@@ -929,8 +960,9 @@ def main():
 
     # If testing a pre-saved model
     if args.test:
-        "\nTesting the model..."
+        print "\nTesting the model..."
         model.test()
+
     # If training the model
     else:
         "\nTraining model..."
@@ -940,4 +972,46 @@ def main():
         # print "test_probas =", test_probas
 
 if __name__ == '__main__':
-  main()
+    main()
+
+    ###
+    # DEBUG compute_embedding
+    ###
+    """
+    print "\nLoading original twitter data..."
+    dialogues = cPickle.load(open('./twitter_dataset/bpe/Train.dialogues.pkl', 'rb'))
+
+    # get the list of contexts, and the list of TRUE responses.
+    def process_dialogues(dialogues):
+        '''Removes </d> </s> at end, splits into contexts/ responses '''
+        contexts = []
+        responses = []
+        for d in dialogues:
+            d_proc = d[:-3]
+            index_list = [i for i, j in enumerate(d_proc) if j == 1]
+            split = index_list[-1] + 1
+            context = filter(lambda idx: idx != 1, d_proc[:split])  # remove </s> from context
+            contexts.append(context)
+            response = filter(lambda idx: idx != 1, d_proc[split:])  # remove </s> from response
+            responses.append(response)
+        return contexts, responses
+
+    contexts, true_responses = process_dialogues(dialogues)
+    print "number of contexts:", len(contexts)
+    print "number of responses:", len(true_responses)
+
+    n_batches = len(contexts) // model.batch_size
+    c_embs = []
+    for i in xrange(n_batches):
+        c_embs.extend(model.compute_context_embeddings(contexts, i))
+    print "number of c_embs:", len(c_embs)
+    print c_embs[0]
+
+    n_batches = len(true_responses) // model.batch_size
+    r_embs = []
+    for i in xrange(n_batches):
+        r_embs.extend(model.compute_response_embeddings(true_responses, i))
+    print "number of r_embs:", len(r_embs)
+    print r_embs[0]
+    """
+
