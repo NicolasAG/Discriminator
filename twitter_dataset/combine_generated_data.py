@@ -80,8 +80,8 @@ def main():
     parser.add_argument('--data_fname_prefix', type=str, default='dataset', help='File name of new data')
     parser.add_argument('--data_embeddings_prefix', type=str, default='W', help='File name of new data embeddings')
     parser.add_argument('--embedding_size', type=int, default=300, help='Size of word embedding')
-    parser.add_argument('--random_model', type=str2bool, default='True', help='Flag to add a random retrieval model as part of the new data')
-    parser.add_argument('--oversampling', type=str2bool, default='True', help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
+    parser.add_argument('--random_model', type='bool', default='True', help='Flag to add a random retrieval model as part of the new data')
+    parser.add_argument('--oversampling', type='bool', default='True', help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
     args = parser.parse_args()
     print "args: ", args
 

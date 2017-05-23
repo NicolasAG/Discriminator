@@ -1,10 +1,17 @@
 #!/usr/bin/env bash
 
-THEANO_FLAGS='floatX=float32,device=gpu3' python main.py \
+echo "VIRTUALENV = $VIRTUALENV"
+. $VIRTUALENV/bin/activate
+
+# nvidia-smi
+# gpu-who
+
+echo "THEANO_FLAGS = $THEANO_FLAGS"
+python2.7 main.py \
     --data_path './twitter_dataset' \
-    --dataset_fname 'dataset_HREDx2-VHREDx2-cTFIDF-RND-TRUE_twitter_bpe.pkl' \
+    --dataset_fname 'dataset_RND-TRUE_twitter_bpe.pkl' \
     --W_fname 'W_300_twitter_bpe.pkl' \
-    --save_prefix 'lstm-100_adam_HREDx2-VHREDx2-cTFIDF-RND-TRUE_twitter' \
+    --save_prefix 'lstm-100_adam_RND-TRUE_twitter' \
     --batch_size 500 \
     --encoder 'lstm' \
     --hidden_size 100 \

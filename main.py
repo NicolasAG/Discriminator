@@ -33,8 +33,8 @@ class Model:
     def __init__(self,
                  data,
                  W,
-                 save_path,
-                 save_prefix,
+                 save_path='.',
+                 save_prefix='twitter',
                  max_seqlen=160,
                  batch_size=50,
                  # Network architecture:
@@ -746,7 +746,6 @@ class Model:
 
         return test_perf  # , test_probas
 
-    # TODO: never used!
     def compute_recall_ks(self, probas):
         def recall(probas, k, group_size):
             """
@@ -761,7 +760,7 @@ class Model:
             n_correct = 0  # keep track of the number of times we got the true response in the top k
             for i in xrange(n_batches):
                 batch = np.array(probas[i*test_size: (i+1)*test_size])[:group_size]
-                indices = np.argpartition(batch, -k)[-k:]
+                indices = np.argpartition(batch, -k)[-k:]  # get top k highest probabilities
                 if 0 in indices:
                     n_correct += 1
             return n_correct / (len(probas) / test_size)
@@ -775,6 +774,56 @@ class Model:
                     recall_k[group_size][k] = recall(probas, k, group_size)
                     print 'recall@%d' % k, recall_k[group_size][k]
         return recall_k
+
+    def retrieve(self, scope, k=10, response_set=None):
+        """
+        For each context in the scope, return the k most probable responses (from data['train']['r'])
+        :param scope: scope of data to query
+        :param k: number of responses to consider
+        :param response_set: list of responses to try for each context. default=data[train][r]
+        """
+        assert scope in ('train', 'val', 'test')
+        if response_set is None or len(response_set) == 0:
+            response_set = self.data['train']['r']
+
+        retrieved_data = {
+            'context': [],  # each context
+            'responses': [],  # list of k responses for each context
+            'true_response': []  # true response for each context
+        }
+
+        for i, context in enumerate(self.data[scope]['c']):
+            print "Retrieving top %d responses for context %d/%d..." % (k, i+1, len(self.data[scope]['c']))
+            all_possible_data = {
+                'c': [context]*len(response_set),
+                'r': [],
+                'y': []
+            }
+            for response in response_set:
+                all_possible_data['r'].append(response)
+                all_possible_data['y'].append(response == self.data[scope]['r'][i])
+
+            data_length = len(all_possible_data['c'])
+            # Pad the data to get full batches
+            while len(all_possible_data['c']) % self.batch_size != 0:
+                all_possible_data['c'].append(all_possible_data['c'][0])
+                all_possible_data['r'].append(all_possible_data['r'][0])
+                all_possible_data['y'].append(all_possible_data['y'][0])
+
+            assert len(all_possible_data['c']) == len(all_possible_data['r']) == len(all_possible_data['y'])
+            n_batches = len(all_possible_data['c']) // self.batch_size
+            probas = np.concatenate([self.compute_probas(all_possible_data, bidx) for bidx in xrange(n_batches)])  # probabilities of each response within each batch
+            probas = probas[:data_length]
+
+            # get top k responses
+            top_k_indices = np.argpartition(probas, -k)[-k:]
+            responses = [all_possible_data['r'][j] for j in top_k_indices]
+
+            retrieved_data['context'].append(context)
+            retrieved_data['responses'].append(responses)
+            retrieved_data['true_response'].append(self.data[scope]['r'][i])
+
+        return retrieved_data
 
 def sort_by_len(dataset):
     """
@@ -793,7 +842,7 @@ def str2bool(v):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.register('type','bool',str2bool)
+    parser.register('type', 'bool', str2bool)
 
     # NTN parameters:
     parser.add_argument('--use_ntn', type='bool', default=False, help='Whether to use NTN')
@@ -843,7 +892,8 @@ def main():
     parser.add_argument('--load_prefix', type=str, default='twitter', help='Prefix for all the model files to load')
 
     # Script parameters:
-    parser.add_argument('--resume', type='bool', default=False, help='Flag to decide if we should resume training from a pre-trained model or not.')
+    parser.add_argument('--resume', type='bool', default=False, help='Resume training from a pre-trained model or not')
+    parser.add_argument('--retrieve', type='bool', default=False, help='Return responses for each context')
     parser.add_argument('--seed', type=int, default=4213, help='Random seed')
     parser.add_argument('--test', type='bool', default=False, help='Get test accuracies with pre-saved model')
     # Plot parameters:
@@ -881,7 +931,7 @@ def main():
     if args.sort_by_len:
         sort_by_len(data['train'])
 
-    if args.resume or args.test:
+    if args.resume or args.test or args.retrieve:
         print "\nLoading model..."
         with open('%s/%s_model.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
             model = cPickle.load(handle)
@@ -962,6 +1012,12 @@ def main():
     if args.test:
         print "\nTesting the model..."
         model.test()
+
+    # If retrieving responses from training set
+    elif args.retrieve:
+        print "\nGenerating responses..."
+        # TODO: run tfidf retriever on model.data['train'] to get a smaller list of responses
+        retrieved_responses = model.retrieve('test', k=10, response_set=None)
 
     # If training the model
     else:
