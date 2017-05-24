@@ -13,7 +13,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-class Model:
+class Model(object):
     def __init__(self,
                  data,
                  W,
