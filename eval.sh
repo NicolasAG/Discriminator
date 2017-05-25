@@ -1,6 +1,36 @@
 #!/usr/bin/env bash
 
-THEANO_FLAGS='base_compiledir=/work/.theano-$USER,floatX=float32,device=cuda' pytho2.7 main.py \
+echo "VIRTUALENV = $VIRTUALENV"
+. $VIRTUALENV/bin/activate
+
+# nvidia-smi
+# gpu-who
+
+export THEANO_FLAGS=$THEANO_FLAGS,device=cuda
+echo "THEANO_FLAGS = $THEANO_FLAGS"
+
+CUDA_VERSION="8.0"
+export CUDA=/usr/local/cuda-${CUDA_VERSION}/bin
+export PATH=${CUDA}:$PATH
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-${CUDA_VERSION}/lib64
+export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/cuda-${CUDA_VERSION}/lib64
+export CPATH=$CPATH:/usr/local/cuda-${CUDA_VERSION}/lib64
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${gpuarray}/lib
+export LIBRARY_PATH=$LIBRARY_PATH:${gpuarray}/lib
+export CPATH=$CPATH:${gpuarray}/include
+
+echo "gpuarray = ${gpuarray}"
+echo "CUDA = $CUDA"
+echo "PATH = $PATH"
+echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
+echo "LIBRARY_PATH = $LIBRARY_PATH"
+echo "CPATH = $CPATH"
+
+echo ""
+
+python2.7 main.py \
     --data_path './twitter_dataset' \
     --dataset_fname 'dataset_RND-TRUE_twitter_bpe.pkl' \
     --W_fname 'W_300_twitter_bpe.pkl' \
