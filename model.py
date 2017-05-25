@@ -5,6 +5,7 @@ import numpy as np
 import pyprind
 import theano
 import theano.tensor as T
+import sys
 import time
 import collections
 from scipy.stats import pearsonr, spearmanr
@@ -651,7 +652,7 @@ class Model(object):
             epoch_cost = 0  # keep track of training cost for each epoch
             start_time = time.time()
 
-            bar = pyprind.ProgBar(n_train_batches, monitor=True)  # show a progression bar on the screen
+            bar = pyprind.ProgBar(n_train_batches, monitor=True, stream=sys.stderr)  # show a progression bar on the screen
             print ""
             ############################
             # Loop through all batches #
