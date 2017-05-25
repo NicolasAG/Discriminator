@@ -21,12 +21,15 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${gpuarray}/lib
 export LIBRARY_PATH=$LIBRARY_PATH:${gpuarray}/lib
 export CPATH=$CPATH:${gpuarray}/include
 
+export HOME=/nlu/users/nicolas_gontier/home
+
 echo "gpuarray = ${gpuarray}"
 echo "CUDA = $CUDA"
 echo "PATH = $PATH"
 echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
 echo "LIBRARY_PATH = $LIBRARY_PATH"
 echo "CPATH = $CPATH"
+echo "HOME = $HOME"
 
 echo ""
 
