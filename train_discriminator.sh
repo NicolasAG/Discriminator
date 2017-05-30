@@ -38,7 +38,7 @@ python2.7 main.py \
     --dataset_fname 'dataset_RND-TRUE_ubuntu_bpe.pkl' \
     --W_fname 'W_300_ubuntu_bpe.pkl' \
     --save_path '.' \
-    --save_prefix 'lstm-300_adam_RND-TRUE_ubuntu' \
+    --save_prefix 'lstm-300_adam_ubuntu' \
     --batch_size 256 \
     --encoder 'lstm' \
     --hidden_size 300 \
@@ -49,6 +49,6 @@ python2.7 main.py \
     --optimizer 'adam' \
     --fine_tune_W True \
     --fine_tune_M True \
-    --load_path './trained_models/lstm-300_RND' \
-    --load_prefix 'lstm-300_adam_RND-TRUE_ubuntu' #\
+    --load_path './trained_models/ubuntu_lstm-300' \
+    --load_prefix 'lstm-300_adam_ubuntu' #\
     #--resume True
