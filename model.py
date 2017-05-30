@@ -1,18 +1,24 @@
 from __future__ import division
-import cPickle
-import lasagne
-import numpy as np
-import pyprind
-import theano
-import theano.tensor as T
 import sys
+import logging
 import time
 import collections
-from scipy.stats import pearsonr, spearmanr
-
+import copy
+import cPickle
+import pyprind
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
+
+import numpy as np
+from scipy.stats import pearsonr, spearmanr
+
+import lasagne
+import theano
+import theano.tensor as T
+
+logger = logging.getLogger(__name__)
+
 
 class Model(object):
     def __init__(self,
@@ -103,7 +109,7 @@ class Model(object):
             l_fwd = l_in
             l_bck = l_in
             if encoder == 'lstm':
-                print "Building a bidirectional LSTM model"
+                logger.info("Building a bidirectional LSTM model")
                 for _ in xrange(n_recurrent_layers):
                     l_fwd = lasagne.layers.LSTMLayer(incoming=l_fwd,
                                                      num_units=hidden_size,  # number of hidden units in the layer
@@ -119,7 +125,7 @@ class Model(object):
                                                      grad_clipping=10,  # avoid exploding gradients
                                                      learn_init=True)   # initial hidden values are learned
             elif encoder == 'gru':
-                print "Building a bidirectional GRU model"
+                logger.info("Building a bidirectional GRU model")
                 for _ in xrange(n_recurrent_layers):
                     l_fwd = lasagne.layers.GRULayer(incoming=l_fwd,
                                                     num_units=hidden_size,  # number of hidden units in the layer
@@ -134,7 +140,7 @@ class Model(object):
                                                     grad_clipping=10,  # avoid exploding gradients
                                                     learn_init=True)   # initial hidden values are learned
             elif encoder == 'rnn':
-                print "Building a bidirectional RNN model"
+                logger.info("Building a bidirectional RNN model")
                 for _ in xrange(n_recurrent_layers):
                     l_fwd = lasagne.layers.RecurrentLayer(incoming=l_fwd,
                                                           num_units=hidden_size,  # number of hidden units in the layer
@@ -163,7 +169,7 @@ class Model(object):
         else:
             l_recurrent = l_in
             if encoder == 'lstm':
-                print "Building an LSTM model"
+                logger.info("Building an LSTM model")
                 for _ in xrange(n_recurrent_layers):
                     l_recurrent = lasagne.layers.LSTMLayer(incoming=l_recurrent,
                                                            num_units=hidden_size,  # number of hidden units in the layer
@@ -171,7 +177,7 @@ class Model(object):
                                                            grad_clipping=10,       # avoid exploding gradients
                                                            learn_init=True)        # initial hidden values are learned
             elif encoder == 'gru':
-                print "Building a GRU model"
+                logger.info("Building a GRU model")
                 for _ in xrange(n_recurrent_layers):
                     l_recurrent = lasagne.layers.GRULayer(incoming=l_recurrent,
                                                           num_units=hidden_size,  # number of hidden units in the layer
@@ -179,7 +185,7 @@ class Model(object):
                                                           grad_clipping=10,       # avoid exploding gradients
                                                           learn_init=True)        # initial hidden values are learned
             elif encoder == 'rnn':
-                print "Building an RNN model"
+                logger.info("Building an RNN model")
                 for _ in xrange(n_recurrent_layers):
                     l_recurrent = lasagne.layers.RecurrentLayer(incoming = l_recurrent,
                                                                 num_units = hidden_size,  # number of hidden units in the layer
@@ -249,7 +255,7 @@ class Model(object):
             params += [self.M]
 
         total_params = sum([p.get_value().size for p in params])
-        print "total_params: ", total_params
+        logger.info("total_params: %d" % total_params)
 
         ###
         # Get parameter updates according to the optimizer
@@ -289,43 +295,49 @@ class Model(object):
             self.r_mask: self.shared_data['r_mask']
         }
 
-        print "compiling theano functions..."
+        logger.info("compiling theano functions...")
         self.get_response_emb = theano.function(
             inputs=[],
             outputs=self.e_response,  # (batch_size, hidden_size)
             givens=givens,
-            on_unused_input='ignore'
+            on_unused_input='ignore',
+            name='get_response_emb'
         )
         self.get_context_emb = theano.function(
             inputs=[],
             outputs=self.e_context,  # (batch_size, hidden_size)
             givens=givens,
-            on_unused_input='ignore'
+            on_unused_input='ignore',
+            name='get_context_emb'
         )
         self.train_model = theano.function(
             inputs=[],
             outputs=self.cost,
             updates=updates,
             givens=givens,
-            on_unused_input='ignore'
+            on_unused_input='ignore',
+            name='train_model'
         )
         self.get_probas = theano.function(
             inputs=[],
             outputs=self.probas,
             givens=givens,
-            on_unused_input='ignore'
+            on_unused_input='ignore',
+            name='get_probas'
         )
         self.get_pred = theano.function(
             inputs=[],
             outputs=self.pred,
             givens=givens,
-            on_unused_input='ignore'
+            on_unused_input='ignore',
+            name='get_pred'
         )
         self.get_loss = theano.function(
             inputs=[],
             outputs=self.errors,
             givens=givens,
-            on_unused_input='ignore'
+            on_unused_input='ignore',
+            name='get_loss'
         )
 
     def get_batch(self, dataset, index):
@@ -338,7 +350,7 @@ class Model(object):
         seqlen = np.zeros((self.batch_size,), dtype=np.int32)
         mask = np.zeros((self.batch_size, self.max_seqlen), dtype=theano.config.floatX)
         batch = np.zeros((self.batch_size, self.max_seqlen), dtype=np.int32)
-        data = dataset[index * self.batch_size:(index + 1) * self.batch_size]
+        data = dataset[index * self.batch_size: (index + 1) * self.batch_size]
         for i, row in enumerate(data):
             row = row[:self.max_seqlen]  # cut the sequence if longer than max_seqlen
             batch[i, 0:len(row)] = row  # put the data into our batch
@@ -434,10 +446,11 @@ class Model(object):
             self.timings[scope][model_name] = []
         self.timings[scope][model_name].append(perf)
 
-    def compute_and_save_performance_models(self, scope):
+    def compute_and_save_performance_models(self, scope, compute_recalls=False):
         """
         Measure the accuracy of the current Discriminator on each dialogue model.
         :param scope: either "train", "val" or "test" sets.
+        :param compute_recalls: decide if compute recall@(10,5,1)
         :return: array of discriminator accuracies for each model.
         """
         assert scope in ["train", "val", "test"]
@@ -462,14 +475,19 @@ class Model(object):
 
         performances = []
         for model_name, data in self.data_by_models[scope].iteritems():
-            print "evaluating", model_name
+            logger.info("evaluating %s" % model_name)
             n_batches = len(data['y']) // self.batch_size
             # Compute performance:
             losses = [self.compute_loss(data, i) for i in xrange(n_batches)]  # number of wrong predictions for each batch
             perf = 1 - np.sum(losses) / len(data['y'])  # 1 - total number of errors / total number of examples
             performances.append(perf)
-            print '%s_perf: %f%%' % (scope, perf * 100)
+            logger.info('%s_perf: %.9f%%' % (scope, perf * 100))
             self.save_performance(scope, model_name, perf)  # save performance of the discriminator for that model under this scope
+        
+        if compute_recalls:
+            n_batches = len(self.data[scope]['y']) // self.batch_size
+            probas = np.concatenate([self.compute_probas(self.data[scope], i) for i in xrange(n_batches)])
+            recall_k = self.compute_recall_ks(probas)
 
         return performances
 
@@ -480,9 +498,10 @@ class Model(object):
         """
         # Compute TEST performance:
         # evaluation for each model id in data['test']['id']
-        test_perfs = self.compute_and_save_performance_models("test")
+        test_perfs = self.compute_and_save_performance_models("test", compute_recalls=True)
         test_perf = np.average(test_perfs)
-        print '\nAverage test_perf: %f%%' % (test_perf * 100)
+        logger.info("")
+        logger.info('Average test_perf: %.9f%%' % test_perf*100)
 
     def plot_score_per_length(self, scope='train'):
         """
@@ -490,7 +509,8 @@ class Model(object):
         :param scope: scope of the data to look at: 'train' or 'val' or 'test'
         :return: None, plot instead.
         """
-        print "\nGet probabilities of each response in data[%s]..." % scope
+        logger.info("")
+        logger.info("Get probabilities of each response in data[%s]..." % scope)
         n_batches = len(self.data[scope]['r']) // self.batch_size
         length_to_scores = {}
         all_lengths = [len(resp) for resp in self.data[scope]['r']]
@@ -506,8 +526,8 @@ class Model(object):
             all_probas.extend(probas)
 
         # Plot for all points: score by length
-        print "[%s]lengths: %d" % (scope, len(all_lengths))
-        print "[%s]probas: %d" % (scope, len(all_probas))
+        logger.info("[%s]lengths: %d" % (scope, len(all_lengths)))
+        logger.info("[%s]probas: %d" % (scope, len(all_probas)))
         n = min(len(all_lengths), len(all_probas))
         fig = plt.figure()
         plt.plot(all_lengths[:n], all_probas[:n], 'r.')
@@ -517,11 +537,11 @@ class Model(object):
         plt.savefig('./plots/plot_%s_length-score_dots.png' % scope)
         plt.close(fig)
 
-        print "[%s]score--length pearson: %s" % (scope, pearsonr(all_lengths[:n], all_probas[:n]))
-        print "[%s]score--length spearman: %s" % (scope, spearmanr(all_lengths[:n], all_probas[:n]))
+        logger.info("[%s]score--length pearson: %s" % (scope, pearsonr(all_lengths[:n], all_probas[:n])))
+        logger.info("[%s]score--length spearman: %s" % (scope, spearmanr(all_lengths[:n], all_probas[:n])))
 
         # Plot average score by length
-        print "[%s]number of different lengths: %d" % (scope, len(length_to_scores))
+        logger.info("[%s]number of different lengths: %d" % (scope, len(length_to_scores)))
         # Order dictionary by keys (by response length)
         length_to_scores = collections.OrderedDict(sorted(length_to_scores.items()))
         fig = plt.figure()
@@ -531,7 +551,7 @@ class Model(object):
         plt.ylabel('Avg. Score')
         plt.savefig('./plots/plot_%s_length-score.png' % scope)
         plt.close(fig)
-        print "[%s]saved plots." % scope
+        logger.info("[%s]saved plots." % scope)
 
     def plot_learning_curves(self, scope):
         """
@@ -556,10 +576,11 @@ class Model(object):
         plt.ylabel('Discriminator Accuracy')
         plt.savefig('./plots/plot_%s_accuracies.png' % scope)
         plt.close(fig)
-        print "saved plot."
+        logger.info("saved plot.")
 
     def plot_human_correlation(self, data):
-        print "\nGet probabilities of each response..."
+        logger.info("")
+        logger.info("Get probabilities of each response...")
         n_batches = len(data['r']) // self.batch_size
         all_human_scores = [s for s in data['score']]
         all_discriminator_scores = []
@@ -575,10 +596,10 @@ class Model(object):
             all_discriminator_scores.extend(probas)
 
         n = min(len(all_human_scores), len(all_discriminator_scores))
-        print "discriminator--human pearson:", pearsonr(all_human_scores[:n], all_discriminator_scores[:n])
-        print "discriminator--human spearman:", spearmanr(all_human_scores[:n], all_discriminator_scores[:n])
+        logger.info("discriminator--human pearson: %s" % (pearsonr(all_human_scores[:n], all_discriminator_scores[:n]),))
+        logger.info("discriminator--human spearman: %s" % (spearmanr(all_human_scores[:n], all_discriminator_scores[:n]),))
 
-        print "number of different scores:", len(human_to_disc)
+        logger.info("number of different scores: %d" % len(human_to_disc))
         # Order dictionary by keys (by human scores)
         human_to_disc = collections.OrderedDict(sorted(human_to_disc.items()))
         fig = plt.figure()
@@ -588,7 +609,7 @@ class Model(object):
         plt.ylabel('discriminator score')
         plt.savefig('./plots/plot_human-disc_scores.png')
         plt.close(fig)
-        print "saved plot."
+        logger.info("saved plot.")
 
     def train(self, n_epochs=100, patience=10, verbose=True):
         """
@@ -609,7 +630,7 @@ class Model(object):
             assert 'true' in self.timings['train']
             # Reset epoch:
             epoch = len(self.timings['train']['true'])
-            print "reset epoch:", epoch
+            logger.info("reset epoch: %d" % epoch)
 
             # Reset best_val_perf:
             average_val_perf = []  # average validation performance of all models over each epochs
@@ -623,7 +644,7 @@ class Model(object):
             # make it an average of all models over all time steps i:
             average_val_perf = [average_val_perf[i]/len(self.timings['val']) for i in range(len(average_val_perf))]
             best_val_perf = np.max(average_val_perf)
-            print "reset best_val_perf:", best_val_perf
+            logger.info("reset best_val_perf: %.9f" % best_val_perf)
 
             if len(self.timings['test']) > 0:
                 # Reset test_perf:
@@ -638,7 +659,7 @@ class Model(object):
                 # make it an average of all models over all time steps i:
                 average_test_perf = [average_test_perf[i]/len(self.timings['test']) for i in range(len(average_test_perf))]
                 test_perf = average_test_perf[-1]
-                print "reset test_perf:", test_perf
+                logger.info("reset test_perf: %.9f" % test_perf)
 
         n_train_batches = len(self.data['train']['y']) // self.batch_size
         n_val_batches = len(self.data['val']['y']) // self.batch_size
@@ -652,7 +673,7 @@ class Model(object):
             epoch_cost = 0  # keep track of training cost for each epoch
             start_time = time.time()
 
-            bar = pyprind.ProgBar(n_train_batches, monitor=True, stream=sys.stderr)  # show a progression bar on the screen
+            bar = pyprind.ProgBar(n_train_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
             print ""
             ############################
             # Loop through all batches #
@@ -662,52 +683,56 @@ class Model(object):
                 self.set_shared_variables(self.data['train'], minibatch_index, training=True)
                 # Train model on this current batch
                 batch_cost = self.train_model()
-                if verbose: print "epoch %i: batch %i/%i cost: %f" % (epoch, minibatch_index+1, n_train_batches, batch_cost)
+                if verbose: logger.info("epoch %i: batch %i/%i cost: %.9f" % (epoch, minibatch_index+1, n_train_batches, batch_cost))
                 epoch_cost += batch_cost
                 self.set_zero(self.zero_vec)  # TODO: check what this does?
                 bar.update()
             ### we trained the model on all the data once! ###
 
             end_time = time.time()
-            print "epoch %i: training cost %f, took %d(s)" % (epoch, epoch_cost/n_train_batches, end_time-start_time)
+            logger.info("epoch %i: training cost %.9f, took %d(s)" % (epoch, epoch_cost/n_train_batches, end_time-start_time))
 
             ###
             # Compute TRAIN performance:
             ###
-            print "\nEvaluating Training set:"
+            logger.info("")
+            logger.info("Evaluating Training set:")
             # evaluation for each model id in data['train']['id']
             train_perfs = self.compute_and_save_performance_models("train")
             train_perf = np.average(train_perfs)
-            print "epoch %i: train perf %f%%" % (epoch, train_perf*100)
+            logger.info("epoch %i: train perf %.9f%%" % (epoch, train_perf*100))
 
             ###
             # Compute VALIDATION performance:
             ###
-            print "\nEvaluating Validation set:"
+            logger.info("")
+            logger.info("Evaluating Validation set:")
             # evaluation for each model id in data['val']['id']
             val_perfs = self.compute_and_save_performance_models("val")
             val_perf = np.average(val_perfs)
-            print 'epoch %i: val_perf %f%%' % (epoch, val_perf*100)
+            logger.info('epoch %i: val_perf %.9f%%' % (epoch, val_perf*100))
 
             ###
             # If doing better on validation set, measure each model test performance and same model parameters!
             ###
             if val_perf > best_val_perf:
-                print "Improved average validation score!"
+                logger.info("Improved average validation score!")
                 best_val_perf = val_perf
                 patience = self.patience  # reset patience to initial value
 
                 ###
                 # Compute TEST performance:
                 ###
-                # print "\nEvaluating Test set:"
+                # logger.info("")
+                # logger.info("Evaluating Test set:")
                 # test_perfs = self.compute_and_save_performance_models("test")
                 # test_perf = np.average(test_perfs)
-                # print 'epoch %i, test_perf %f%%' % (epoch, test_perf*100)
+                # logger.info('epoch %i, test_perf %f%%' % (epoch, test_perf*100))
                 # test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]  # probability of being a true response for each batch
 
                 # Save current best model parameters.
-                print "\nSaving current model parameters..."
+                logger.info("")
+                logger.info("Saving current model parameters...")
                 with open('%s/%s_best_weights.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     params = [np.asarray(p.eval()) for p in lasagne.layers.get_all_params(self.l_out)]
                     cPickle.dump(params, handle, protocol=cPickle.HIGHEST_PROTOCOL)
@@ -716,18 +741,22 @@ class Model(object):
                 with open('%s/%s_best_M.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self.M.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 # Save model.
-                print "\nSaving model..."
+                logger.info("")
+                logger.info("Saving model...")
                 with open("%s/%s_model.pkl" % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self, handle, protocol=cPickle.HIGHEST_PROTOCOL)
-                print "Saved."
+                logger.info("Saved.")
             else:
                 patience -= 1  # decrease patience
-                print "\nNo improvement! patience:", patience
+                logger.info("")
+                logger.info("No improvement! patience: %d" % patience)
 
             # In any case, save performances.
-            print "\nSaving performances..."
+            logger.info("")
+            logger.info("Saving performances...")
             with open('%s/%s_timings.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                 cPickle.dump(self.timings, handle, protocol=cPickle.HIGHEST_PROTOCOL)
+            logger.info("Saved.")
 
         return test_perf  # , test_probas
 
@@ -753,59 +782,103 @@ class Model(object):
         recall_k = {}
         for group_size in [2, 5, 10]:
             recall_k[group_size] = {}
-            print 'group_size: %d' % group_size
+            logger.info('group_size: %d' % group_size)
             for k in [1, 2, 5]:
                 if k < group_size:
                     recall_k[group_size][k] = recall(probas, k, group_size)
-                    print 'recall@%d' % k, recall_k[group_size][k]
+                    logger.info('recall@%d = %s' % (k, recall_k[group_size][k]))
         return recall_k
 
-    def retrieve(self, scope, k=10, response_set=None):
+    def retrieve(self, context_set=None, response_set=None, k=10, batch_size=100):
         """
-        For each context in the scope, return the k most probable responses (from data['train']['r'])
-        :param scope: scope of data to query
-        :param k: number of responses to consider
+        For each context in the context_set, return the k most probable responses from the response_set.
+        :param context_set: list of contexts to query. default=data[train][c]
         :param response_set: list of responses to try for each context. default=data[train][r]
+        :param k: number of responses to consider
+        :param batch_size: number of contexts to consider at a time.
         """
-        assert scope in ('train', 'val', 'test')
         if response_set is None or len(response_set) == 0:
-            response_set = self.data['train']['r']
+            response_set = copy.deepcopy(self.data['train']['r'])
+        if context_set is None or len(context_set) == 0:
+            context_set = copy.deepcopy(self.data['train']['c'])
+
+        ###
+        # Compute embedding of each response
+        ###
+        logger.info("Computing response embeddings...")
+        # Pad response set to be divisible by batch_size
+        length = len(response_set)
+        while len(response_set) % self.batch_size != 0:
+            response_set.append(response_set[0])
+        # Compute embeddings
+        n_batches = len(response_set) // self.batch_size
+        embedded_responses = []  # list of response embeddings
+        bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
+        for i in xrange(n_batches):
+            embedded_responses.extend(self.compute_response_embeddings(response_set, i))
+            bar.update()
+        print ""
+        # Ignore padded embeddings
+        embedded_responses = embedded_responses[:length]
+        response_set = response_set[:length]
+
+        ###
+        # Compute embedding of each context
+        ###
+        logger.info("Computing context embeddings...")
+        # Pad context set to be divisible by batch_size
+        length = len(context_set)
+        while len(context_set) % self.batch_size != 0:
+            context_set.append(context_set[0])
+        # Compute embeddings
+        n_batches = len(context_set) // self.batch_size
+        embedded_contexts = []  # list of response embeddings
+        bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
+        for i in xrange(n_batches):
+            embedded_contexts.extend(self.compute_context_embeddings(context_set, i))
+            bar.update()
+        print ""
+        # Ignore padded embeddings
+        embedded_contexts = embedded_contexts[:length]
+        context_set = context_set[:length]
 
         retrieved_data = {
-            'context': [],  # each context
-            'responses': [],  # list of k responses for each context
-            'true_response': []  # true response for each context
+            'c': context_set,  # each context
+            'r': [],  # list of k responses for each context
+            'true_r': response_set  # true response for each context
         }
 
-        for i, context in enumerate(self.data[scope]['c']):
-            print "Retrieving top %d responses for context %d/%d..." % (k, i+1, len(self.data[scope]['c']))
-            all_possible_data = {
-                'c': [context]*len(response_set),
-                'r': [],
-                'y': []
-            }
-            for response in response_set:
-                all_possible_data['r'].append(response)
-                all_possible_data['y'].append(response == self.data[scope]['r'][i])
+        e_context = T.fmatrix('e_context')  # (batch_size, hidden_size)
+        e_responses = T.fmatrix('e_responses')  # (#_responses, hidden_size)
 
-            data_length = len(all_possible_data['c'])
-            # Pad the data to get full batches
-            while len(all_possible_data['c']) % self.batch_size != 0:
-                all_possible_data['c'].append(all_possible_data['c'][0])
-                all_possible_data['r'].append(all_possible_data['r'][0])
-                all_possible_data['y'].append(all_possible_data['y'][0])
+        dp = T.dot(e_context, T.dot(e_responses, self.M.T).T)
+        o = T.nnet.sigmoid(dp)
+        o = T.clip(o, 1e-7, 1.0-1e-7)  # (batch_size, #of_responses)
+        # proba = T.concatenate([(1-o).reshape((-1,1)), o.reshape((-1,1))], axis=1)  # (batch_size*#_responses , 2)
 
-            assert len(all_possible_data['c']) == len(all_possible_data['r']) == len(all_possible_data['y'])
-            n_batches = len(all_possible_data['c']) // self.batch_size
-            probas = np.concatenate([self.compute_probas(all_possible_data, bidx) for bidx in xrange(n_batches)])  # probabilities of each response within each batch
-            probas = probas[:data_length]
+        get_response_probas = theano.function(
+            inputs=[e_context, e_responses],
+            outputs=o,
+            name='get_response_probas'
+        )
+
+        for c_idx in range(0, len(embedded_contexts), batch_size):
+            end = min(c_idx+1+batch_size, len(embedded_contexts))
+            logger.info("Retrieving top %d responses for context %d-->%d/%d..." % (k, c_idx+1, end, len(embedded_contexts)))
+            probas = get_response_probas(embedded_contexts[c_idx: end], embedded_responses)  # (batch_size, #_responses)
+            logger.info("average proba of true responses: %.9f" % np.mean([probas[i, c_idx+i] for i in range(batch_size)]))
 
             # get top k responses
-            top_k_indices = np.argpartition(probas, -k)[-k:]
-            responses = [all_possible_data['r'][j] for j in top_k_indices]
+            top_k_indices = np.argpartition(probas, -k)[:, -k:]  # (batch_size, k)
 
-            retrieved_data['context'].append(context)
-            retrieved_data['responses'].append(responses)
-            retrieved_data['true_response'].append(self.data[scope]['r'][i])
+            for b in range(batch_size):
+                if c_idx+b in top_k_indices[b]:
+                    logger.info("  Got true response!")
+            
+                responses = [response_set[i] for i in top_k_indices[b]]
+                retrieved_data['r'].append(responses)
+                # logger.debug("context: %s" % context_set[c_idx+b])
+                # logger.debug("responses: %s" % (responses,))
 
+        assert len(retrieved_data['c']) == len(retrieved_data['r'])
         return retrieved_data
