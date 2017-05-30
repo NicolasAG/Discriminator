@@ -97,7 +97,7 @@ def main():
     # LOAD BPE DICTIONARIES: map bpe_indices/bpe_words - vocab ~ 5,000
     ###
     twitter_bpe = BPE(open('%s/bpe/Twitter_Codes_5000.txt' % args.data_dir, 'r').readlines())
-    twitter_bpe_dict = cPickle.load(open('%s/bpe/Dataset.dict-5k.pkl' % args.data_dir, 'r'))
+    twitter_bpe_dict = cPickle.load(open('%s/bpe/Dataset.dict-5k.pkl' % args.data_dir, 'rb'))
     twitter_bpe_str_to_idx = dict([(tok, tok_id) for tok, tok_id, _, _ in twitter_bpe_dict])
     twitter_bpe_idx_to_str = dict([(tok_id, tok) for tok, tok_id, _, _ in twitter_bpe_dict])
     print "BPE dictionary length: ", len(twitter_bpe_dict)
