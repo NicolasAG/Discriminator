@@ -41,3 +41,29 @@ test_perf: 85.133367%
 
 Average test_perf: 80.847329%
 
+
+~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+
+
+Loading data...
+W.shape: (5092, 300)
+Number of training examples: 1198496
+Number of validation examples: 149812
+Number of test examples: 149812
+data loaded!
+
+Loading model...
+Model loaded.
+saved plot.
+saved plot.
+
+Testing the model...
+evaluating rand
+test_perf: 77.051238%
+evaluating true
+test_perf: 84.387098%
+
+Average test_perf: 80.719168%
+
+
+
