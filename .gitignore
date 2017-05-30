@@ -2,4 +2,6 @@
 *.pyc
 *.pkl
 *.txt
+*.sh.e*
+*.sh.o*
 
