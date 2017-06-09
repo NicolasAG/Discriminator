@@ -3,7 +3,7 @@
 echo "VIRTUALENV = $VIRTUALENV"
 . $VIRTUALENV/bin/activate
 
-export THEANO_FLAGS=$THEANO_FLAGS,device=gpu
+export THEANO_FLAGS=$THEANO_FLAGS,device=gpu,optimizer=fast_compile  # ,exception_verbosity=high
 echo "THEANO_FLAGS = $THEANO_FLAGS"
 
 CUDA_VERSION="8.0"
@@ -34,21 +34,22 @@ echo "HOME = $HOME"
 echo ""
 
 python2.7 main.py \
-    --data_path './ubuntu_dataset' \
-    --dataset_fname 'dataset_RND-TRUE_ubuntu_bpe.pkl' \
-    --W_fname 'W_300_ubuntu_bpe.pkl' \
+    --data_path './ubuntu_dataset/v1' \
+    --dataset_fname 'dataset_prepared.pkl' \
+    --W_fname 'W_300_ubuntu_big.pkl' \
     --save_path '.' \
-    --save_prefix 'lstm-300_adam_ubuntu' \
+    --save_prefix 'lstm-200_adam_ubuntu-v1' \
     --batch_size 256 \
     --encoder 'lstm' \
-    --hidden_size 300 \
+    --hidden_size 200 \
     --is_bidirectional False \
     --n_recurrent_layers 1 \
     --patience 10 \
     --n_epochs 100 \
     --optimizer 'adam' \
+    --seed 42 \
     --fine_tune_W True \
-    --fine_tune_M True \
-    --load_path './trained_models/ubuntu_lstm-300' \
-    --load_prefix 'lstm-300_adam_ubuntu' #\
+    --fine_tune_M True #\
+    #--load_path './trained_models/ubuntu-v1_lstm-200' \
+    #--load_prefix 'lstm-200_adam_ubuntu-v1' \
     #--resume True

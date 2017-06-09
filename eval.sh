@@ -33,14 +33,23 @@ echo "HOME = $HOME"
 
 echo ""
 
+# python2.7 main.py \
+#     --data_path './twitter_dataset' \
+#     --dataset_fname 'dataset_RND-TRUE_twitter_bpe.pkl' \
+#     --W_fname 'W_300_twitter_bpe.pkl' \
+#     --load_path './trained_models/twitter_lstm-100' \
+#     --load_prefix 'lstm-100_adam_twitter' \
+#     --save_path '.' \
+#     --save_prefix 'lstm-100_adam_twitter' \
+#     --retrieve True
+
 python2.7 main.py \
-    --data_path './twitter_dataset' \
-    --dataset_fname 'dataset_RND-TRUE_twitter_bpe.pkl' \
-    --W_fname 'W_300_twitter_bpe.pkl' \
-    --load_path './trained_models/twitter_lstm-100' \
-    --load_prefix 'lstm-100_adam_twitter' \
+    --data_path './ubuntu_dataset/v2' \
+    --dataset_fname 'dataset.pkl' \
+    --W_fname 'W.pkl' \
+    --load_path './trained_models/ubuntu-v2_lstm-200' \
+    --load_prefix 'lstm-200_adam_ubuntu-v2' \
     --save_path '.' \
-    --save_prefix 'lstm-100_adam_twitter' \
+    --save_prefix 'lstm-200_adam_ubuntu-v2' \
     --test True \
-    --plot_response_length False \
     --plot_learning_curves False
