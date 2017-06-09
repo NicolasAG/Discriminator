@@ -14,17 +14,35 @@ from model import Model as DE_Model
 logger = logging.getLogger(__name__)
 
 
-def string2indices(p_str, str_to_idx):
+def string2indices(p_str, str_to_idx, bpe=None):
     """
     Lookup dictionary from word to index to retrieve the list of indices from a string of words.
     If bpe is present, will automatically convert regular string p_str to bpe formatted string.
     :param p_str: string of words corresponding to indices.
     :param str_to_idx: contains the mapping from words to indices.
+    :param bpe: byte pair encoding object from apply_bpe.py
     :return: a new list of indices corresponding to the given string of words.
     """
-    return [str_to_idx[w] for w in p_str.strip().split() if w in str_to_idx]
+    if bpe:
+        bpe_string = bpe.segment(p_str.strip())  # convert from regular to bpe format
+        return [str_to_idx[w] for w in bpe_string.split() if w in str_to_idx]
+    else:
+        return [str_to_idx[w] for w in p_str.strip().split() if w in str_to_idx]
 
-def process_dialogues(dialogues):
+def indices2string(p_indices, idx_to_str, bpe=None):
+    """
+    Lookup dictionary from word to index to retrieve the list of words from a list of indices.
+    :param p_indices: list of indices corresponding to words.
+    :param idx_to_str: contains the mapping from indices to words.
+    :param bpe: byte pair encoding object from apply_bpe.py
+    :return: a new string corresponding to the given list of indices.
+    """
+    if bpe:
+        return ' '.join([idx_to_str[idx] for idx in p_indices if idx in idx_to_str]).replace(bpe.separator+' ', '')
+    else:
+        return ' '.join([idx_to_str[idx] for idx in p_indices if idx in idx_to_str])
+
+def process_twitter_dialogues(dialogues):
     """
     get the list of contexts, and the list of TRUE responses.
     Removes </d> </s> at end, splits into contexts/ responses
@@ -41,6 +59,34 @@ def process_dialogues(dialogues):
         responses.append(response)
     return contexts, responses
 
+def process_ubuntu_dialogues(dialogues, str_to_idx):
+    """
+    splits list of dialogues into lists of contexts & responses like so:
+    context = first 2,3,4,... utterances & response the next utterance
+    :param dialogues: list of idx formated dialogues
+    :param str_to_idx: dictionary from string to idx
+    :return: list of contexts, list of responses
+    """
+    contexts = []
+    responses = []
+    for d in dialogues:
+        # d_proc = d[:-1]  # remove the last '__eou__' token
+        index_list = [i for i, j in enumerate(d) if j == str_to_idx['__eot__']]  # split at every __eot__
+        if len(index_list) < 2:
+            print "ignoring short dialogues: # of __eot__ = %d < 2" % len(index_list)
+        for i, start_idx in enumerate(index_list):
+            if i == 0:
+                continue  # take at least 2 turns for the context
+            elif i == len(index_list)-1:  # if last __eot__ token:
+                end_idx = len(d)  # response goes until the end of the dialogue
+            else:
+                end_idx = index_list[i+1]
+            context = filter(lambda idx: idx!=str_to_idx['__eou__'], d[:start_idx])  # remove all __eou__ and last __eot__ from context
+            contexts.append(context)
+            response = filter(lambda idx: idx!=str_to_idx['__eou__'], d[start_idx+1:end_idx])  # remove all __eou__ and first __eot__ from response
+            responses.append(response)
+    return contexts, responses
+
 def sort_by_len(dataset):
     """
     Sort a given data set by its context length
@@ -53,10 +99,12 @@ def sort_by_len(dataset):
     for k in ['c', 'r', 'y']:
         dataset[k] = np.array(dataset[k])[indices]
 
-def create_model(data, w, args):
+def create_model(data, w, word2idx, idx2word, args):
     return DE_Model(
         data=data,
         W=w.astype(theano.config.floatX),
+        word2idx=word2idx,
+        idx2word=idx2word,
         save_path=args.save_path,
         save_prefix=args.save_prefix,
         max_seqlen=args.max_seqlen,                         # default 160
@@ -97,7 +145,7 @@ def main():
     parser.add_argument('--k', type=int, default=4, help='Size of k in NTN')
 
     # Structure of Network:
-    parser.add_argument('--encoder', type=str, default='rnn', help='Type of encoding RNN units: rnn, gru, lst')
+    parser.add_argument('--encoder', type=str, default='rnn', help='Type of encoding RNN units: rnn, gru, lstm')
     parser.add_argument('--hidden_size', type=int, default=200, help='Hidden size')
     parser.add_argument('--is_bidirectional', type='bool', default=False, help='Bidirectional RNN')
     parser.add_argument('--n_recurrent_layers', type=int, default=1, help='Num recurrent layers')
@@ -195,13 +243,13 @@ def main():
                 model = cPickle.load(handle)
                 model.data = data  # in cases when we want to test or resume with new data
         except cPickle.UnpicklingError:
-            logger.info("cPickle.UnpicklingError: couldn't load the model")
+            logger.error("cPickle.UnpicklingError: couldn't load the model")
             # Loading old arguments
             with open('%s/%s_args.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
                 old_args = cPickle.load(handle)
             
             logger.info("Creating a new one...")
-            model = create_model(data, W, old_args)
+            model = create_model(data, W, word2idx, idx2word, old_args)
 
             logger.info("Set the learned weights...")
             with open('%s/%s_best_weights.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
@@ -210,13 +258,15 @@ def main():
             with open('%s/%s_best_M.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
                 M = cPickle.load(handle)
                 model.M.set_value(M)
-            with open('%s/%s_best_embed' % (args.load_path, args.load_prefix), 'rb') as handle:
+            with open('%s/%s_best_embed.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
                 em = cPickle.load(handle)
                 model.embeddings.set_value(em)
 
             logger.info("Testing the model...")
             model.test()
-            ok = raw_input("\nDoes the performance look good? If so, will save the model. (y/n): ")
+            logger.info("")
+            logger.info("Does the performance look good? If so, will save the model. (y/n): ")
+            ok = raw_input("")
             if ok == 'y':
                 logger.info("Saving new model in %s/%s_model.pkl" % (args.save_path, args.save_prefix))
                 with open("%s/%s_model.pkl" % (args.save_path, args.save_prefix), 'wb') as handle:
@@ -232,7 +282,7 @@ def main():
     else:
         logger.info("")
         logger.info("Creating model...")
-        model = create_model(data, W, args)
+        model = create_model(data, W, word2idx, idx2word, args)
         logger.info("Model created.")
 
     # Get correlation with Human scores:
@@ -263,11 +313,15 @@ def main():
         model.plot_human_correlation(human_scores)
 
     if args.plot_response_length:
+        logger.info("")
+        logger.info("plot score by length...")
         model.plot_score_per_length('train')
         model.plot_score_per_length('val')
         model.plot_score_per_length('test')
 
     if args.plot_learning_curves:
+        logger.info("")
+        logger.info("plot learning curves...")
         model.plot_learning_curves('train')
         model.plot_learning_curves('val')
 
@@ -278,18 +332,26 @@ def main():
         model.test()
 
     # If retrieving responses from training set
-    elif args.retrieve:
+    elif args.retrieve:  # TODO: GET CONTEXT/RESPONSE STRINGS!!
         logger.info("")
-        logger.info("Loading original twitter data...")
-        with open('%s/bpe/Train.dialogues.pkl' % args.data_path, 'rb') as handle:
+        logger.info("Loading original data from %s/words/Training.dialogues.pkl..." % args.data_path)
+        with open('%s/words/Training.dialogues.pkl' % args.data_path, 'rb') as handle:
             train_conversations = cPickle.load(handle)
-        train_contexts, train_responses = process_dialogues(train_conversations)
+        train_contexts, train_responses = process_ubuntu_dialogues(train_conversations, word2idx)
         logger.info("number of contexts: %d" % len(train_contexts))
         logger.info("number of responses: %d" % len(train_responses))
 
+        # Convert idx to string
+        train_contexts_str = []
+        for c in train_contexts:
+            train_contexts_str.append(indices2string(c, idx2word))
+        train_responses_str = []
+        for r in train_responses:
+            train_responses_str.append(indices2string(r, idx2word))
+
         logger.info("")
         logger.info("Retrieving responses...")
-        retrieved_responses = model.retrieve(context_set=train_contexts, response_set=train_responses, k=10, batch_size=100)
+        retrieved_responses = model.retrieve(context_set=train_contexts_str, response_set=train_responses_str, k=10, batch_size=1000)
         with open("%s/%s_Train_retrieved_responses.pkl" % (args.save_path, args.save_prefix), 'wb') as handle:
             cPickle.dump(retrieved_responses, handle, protocol=cPickle.HIGHEST_PROTOCOL)
         logger.info('saved.')

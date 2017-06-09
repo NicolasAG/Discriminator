@@ -4,6 +4,7 @@ import logging
 import time
 import collections
 import copy
+import random
 import cPickle
 import pyprind
 import matplotlib
@@ -22,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 class Model(object):
     def __init__(self,
-                 data,
-                 W,
+                 data, W,
+                 word2idx, idx2word,
                  save_path='.',
                  save_prefix='twitter',
                  max_seqlen=160,
@@ -52,6 +53,8 @@ class Model(object):
         self.data = data
         vocab_size = W.shape[0]
         embedding_size = W.shape[1]
+        self.word2idx = word2idx
+        self.idx2word = idx2word
         self.embeddings = theano.shared(W, name='embeddings', borrow=True)
         self.save_path = save_path
         self.save_prefix = save_prefix
@@ -93,6 +96,7 @@ class Model(object):
             self.f = lasagne.nonlinearities.tanh
         else:
             self.M = theano.shared(np.eye(hidden_size).astype(theano.config.floatX), borrow=True)
+            self.b = theano.shared(0., borrow=True)
 
         # context word embeddings: Tensor of shape (batch_size, max_seqlen, embedding_size)
         c_input = self.embeddings[self.c.flatten()].reshape((self.c.shape[0], self.c.shape[1], self.embeddings.shape[1]))
@@ -114,6 +118,7 @@ class Model(object):
                     l_fwd = lasagne.layers.LSTMLayer(incoming=l_fwd,
                                                      num_units=hidden_size,  # number of hidden units in the layer
                                                      mask_input=l_mask,
+                                                     forgetgate=lasagne.layers.Gate(b=lasagne.init.Constant(2.0)),  # init forget gate bias to 2
                                                      backwards=False,   # forward pass
                                                      grad_clipping=10,  # avoid exploding gradients
                                                      learn_init=True)   # initial hidden values are learned
@@ -121,6 +126,7 @@ class Model(object):
                     l_bck = lasagne.layers.LSTMLayer(incoming=l_bck,
                                                      num_units=hidden_size,  # number of hidden units in the layer
                                                      mask_input=l_mask,
+                                                     forgetgate=lasagne.layers.Gate(b=lasagne.init.Constant(2.0)),  # init forget gate bias to 2
                                                      backwards=True,    # backward pass
                                                      grad_clipping=10,  # avoid exploding gradients
                                                      learn_init=True)   # initial hidden values are learned
@@ -174,6 +180,7 @@ class Model(object):
                     l_recurrent = lasagne.layers.LSTMLayer(incoming=l_recurrent,
                                                            num_units=hidden_size,  # number of hidden units in the layer
                                                            mask_input=l_mask,
+                                                           forgetgate=lasagne.layers.Gate(b=lasagne.init.Constant(2.0)),  # init forget gate bias to 2
                                                            grad_clipping=10,       # avoid exploding gradients
                                                            learn_init=True)        # initial hidden values are learned
             elif encoder == 'gru':
@@ -222,7 +229,8 @@ class Model(object):
             dp += T.concatenate([self.e_context, self.e_response], axis=1).dot(self.V.T) + self.b
             dp = self.f(dp).dot(self.U)
         else:
-            dp = T.batched_dot(self.e_context, T.dot(self.e_response, self.M.T))
+            dp = T.batched_dot(self.e_context, T.dot(self.e_response, self.M.T))  # (batch_size,)
+            dp += self.b  # bias term
 
         o = T.nnet.sigmoid(dp)
         o = T.clip(o, 1e-7, 1.0-1e-7)  # clip output probabilities
@@ -252,7 +260,7 @@ class Model(object):
         if self.fine_tune_W:
             params += [self.embeddings]
         if self.fine_tune_M and not self.use_ntn:
-            params += [self.M]
+            params += [self.M, self.b]
 
         total_params = sum([p.get_value().size for p in params])
         logger.info("total_params: %d" % total_params)
@@ -340,19 +348,52 @@ class Model(object):
             name='get_loss'
         )
 
-    def get_batch(self, dataset, index):
+    def string2indices(self, p_str, bpe=None):
+        """
+        Lookup dictionary from word to index to retrieve the list of indices from a string of words.
+        If bpe is present, will automatically convert regular string p_str to bpe formatted string.
+        :param p_str: string of words corresponding to indices.
+        :param bpe: byte pair encoding object from apply_bpe.py
+        :return: a new list of indices corresponding to the given string of words.
+        """
+        if bpe:
+            bpe_string = bpe.segment(p_str.strip())  # convert from regular to bpe format
+            return [self.word2idx[w] for w in bpe_string.split() if w in self.word2idx]
+        else:
+            return [self.word2idx[w] for w in p_str.strip().split() if w in self.word2idx]
+
+    def indices2string(self, p_indices, bpe=None):
+        """
+        Lookup dictionary from word to index to retrieve the list of words from a list of indices.
+        :param p_indices: list of indices corresponding to words.
+        :param bpe: byte pair encoding object from apply_bpe.py
+        :return: a new string corresponding to the given list of indices.
+        """
+        if bpe:
+            return ' '.join([self.idx2word[idx] for idx in p_indices if idx in self.idx2word]).replace(bpe.separator+' ', '')
+        else:
+            return ' '.join([self.idx2word[idx] for idx in p_indices if idx in self.idx2word])
+
+    def get_batch(self, dataset, index, truncate_type):
         """
         Get description of the data at a given batch index.
         :param dataset: array of tokens (can represent either contexts or responses)
         :param index: current index of the batch
+        :param truncate_type: 'c' will truncate backward & 'r' will truncate forward
         :return: batch data, sequence length for each element in batch, mask for each element in batch
         """
         seqlen = np.zeros((self.batch_size,), dtype=np.int32)
         mask = np.zeros((self.batch_size, self.max_seqlen), dtype=theano.config.floatX)
         batch = np.zeros((self.batch_size, self.max_seqlen), dtype=np.int32)
-        data = dataset[index * self.batch_size: (index + 1) * self.batch_size]
+        data = dataset[index*self.batch_size: (index+1) * self.batch_size]
         for i, row in enumerate(data):
-            row = row[:self.max_seqlen]  # cut the sequence if longer than max_seqlen
+            if truncate_type == 'c':
+                row = row[-self.max_seqlen:]  # cut start of context if longer than max_seqlen
+            elif truncate_type == 'r':
+                row = row[:self.max_seqlen]  # cut end of response if longer than max_seqlen
+            else:
+                logger.error("truncate_type %s unknown" % truncate_type)
+
             batch[i, 0:len(row)] = row  # put the data into our batch
             seqlen[i] = len(row) - 1  # max index for that batch element
             mask[i, 0:len(row)] = 1  # put a '1' on the sequence, 0 else where
@@ -367,8 +408,8 @@ class Model(object):
         :param training: if true, dataset['y'] is required, else not used
         :return: None
         """
-        c, c_seqlen, c_mask = self.get_batch(dataset['c'], index)
-        r, r_seqlen, r_mask = self.get_batch(dataset['r'], index)
+        c, c_seqlen, c_mask = self.get_batch(dataset['c'], index, 'c')
+        r, r_seqlen, r_mask = self.get_batch(dataset['r'], index, 'r')
         if training:
             y = np.array(dataset['y'][index*self.batch_size:(index+1)*self.batch_size], dtype=np.int32)
             self.shared_data['y'].set_value(y)
@@ -385,7 +426,7 @@ class Model(object):
         :param index: current batch index
         :return: list of embeddings for that batch
         """
-        r, r_seqlen, r_mask = self.get_batch(dataset, index)
+        r, r_seqlen, r_mask = self.get_batch(dataset, index, 'r')
         self.shared_data['r'].set_value(r)
         self.shared_data['r_seqlen'].set_value(r_seqlen)
         self.shared_data['r_mask'].set_value(r_mask)
@@ -397,7 +438,7 @@ class Model(object):
         :param index: current batch index
         :return: list of embeddings for that batch
         """
-        c, c_seqlen, c_mask = self.get_batch(dataset, index)
+        c, c_seqlen, c_mask = self.get_batch(dataset, index, 'c')
         self.shared_data['c'].set_value(c)
         self.shared_data['c_seqlen'].set_value(c_seqlen)
         self.shared_data['c_mask'].set_value(c_mask)
@@ -481,15 +522,45 @@ class Model(object):
             losses = [self.compute_loss(data, i) for i in xrange(n_batches)]  # number of wrong predictions for each batch
             perf = 1 - np.sum(losses) / len(data['y'])  # 1 - total number of errors / total number of examples
             performances.append(perf)
-            logger.info('%s_perf: %.9f%%' % (scope, perf * 100))
+            logger.info('%s_perf: %.9f%%' % (scope, perf*100))
             self.save_performance(scope, model_name, perf)  # save performance of the discriminator for that model under this scope
         
         if compute_recalls:
-            n_batches = len(self.data[scope]['y']) // self.batch_size
-            probas = np.concatenate([self.compute_probas(self.data[scope], i) for i in xrange(n_batches)])
-            recall_k = self.compute_recall_ks(probas)
+            if scope == 'train':
+                logger.warning("train set has been shuffled, unable to compute recalls!")
+            else:
+                logger.info("")
+                logger.debug("verifying data format for recalls...")
+                # WARNING: assumes data[scope] has been created like so: [1 true response, 9 false, 1 true, 9 false, ...]
+                # -> no model responses, only true vs random, context after context: 1 true vs 9 flase, data not shuffled!
+                test_size = 10
+                try:
+                    for idx in xrange(0, len(self.data[scope]['c']), test_size):
+                        # If size of data not divisible by `test_size`, ignore the last few examples
+                        if self.data[scope]['c'][idx+test_size-1] >= len(self.data[scope]['c']):
+                            break
+                        # Make sure that contexts are the same `test_size` times in a row
+                        for t in range(test_size)[1:]:
+                            assert self.data[scope]['c'][idx] == self.data[scope]['c'][idx+t], "contexts don't match! has data been shuffled?"
+                        # Make sure that true response is always the first and remaining 9 are false
+                        assert self.data[scope]['y'][idx] == 1, "data[%s][y][%d]=%s != 1" % (scope, idx, self.data[scope]['y'][idx])
+                        for t in range(test_size)[1:]:
+                            assert self.data[scope]['y'][idx+t] == 0, "data[%s][y][%d]=%s != 0" % (scope, idx+t, self.data[scope]['y'][idx+t])
+                        # Make sure that true response is always the first and remaining 9 are random
+                        assert self.data[scope]['id'][idx] == 'true', "data[%s][id][%d]=%s != true" % (scope, idx, self.data[scope]['id'][idx])
+                        for t in range(test_size)[1:]:
+                            assert self.data[scope]['id'][idx+t] == 'rand', "data[%s][id][%d]=%s != rand" % (scope, idx+t, self.data[scope]['id'][idx+t])
+                except AssertionError as e:
+                    logger.error("AssertionError: %s" % e)
+                    logger.error("Cannot compute recalls")
+                    return performances, None
+                
+                n_batches = len(self.data[scope]['y']) // self.batch_size
+                probas = np.concatenate([self.compute_probas(self.data[scope], i) for i in xrange(n_batches)])
+                recall_k = self.compute_recall_ks(probas)
+                return performances, recall_k
 
-        return performances
+        return performances, None
 
     def test(self):
         """
@@ -498,10 +569,10 @@ class Model(object):
         """
         # Compute TEST performance:
         # evaluation for each model id in data['test']['id']
-        test_perfs = self.compute_and_save_performance_models("test", compute_recalls=True)
+        test_perfs, test_recalls = self.compute_and_save_performance_models("test", compute_recalls=True)
         test_perf = np.average(test_perfs)
         logger.info("")
-        logger.info('Average test_perf: %.9f%%' % test_perf*100)
+        logger.info('Average test_perf=%.9f%%' % (test_perf*100))
 
     def plot_score_per_length(self, scope='train'):
         """
@@ -559,9 +630,16 @@ class Model(object):
         :param scope: scope of the data to look at: 'train' or 'val' or 'test'
         :return: None, plot instead
         """
-        colors = ['b-', 'g-', 'r-', 'c-', 'm-', 'y-', 'k-']
+        colors = ['b', 'r', 'g', 'c', 'm', 'y', 'k']
         fig = plt.figure()
+        average_acc = []
         for i, (model_name, accuracies) in enumerate(self.timings[scope].iteritems()):
+            # store accuracies into average
+            if len(average_acc) == 0:
+                average_acc = accuracies
+            else:
+                average_acc = [average_acc[j]+accuracies[j] for j in range(len(accuracies))]
+            # set model name to show on plot
             if '/VHRED/' in model_name:
                 if 'Stochastic' in model_name: model_name = 'VHRED-rnd'
                 elif 'BeamSearch_5' in model_name: model_name = 'VHRED-beam5'
@@ -569,7 +647,13 @@ class Model(object):
                 if 'Stochastic' in model_name: model_name = 'HRED-rnd'
                 elif 'BeamSearch_5' in model_name: model_name = 'HRED-beam5'
             elif 'c_tfidf' in model_name: model_name = 'TF-IDF'
-            plt.plot(range(len(accuracies)), accuracies, colors[i], label=model_name)
+            # plot individiual lines
+            plt.plot(range(len(accuracies)), accuracies, colors[i]+'--', label=model_name)
+        # get average line
+        average_acc = [average_acc[j]/float(len(self.timings[scope])) for j in range(len(average_acc))]
+        # plot it
+        plt.plot(range(len(average_acc)), average_acc, colors[len(self.timings[scope])]+'-', label='AVERAGE')
+
         plt.legend(loc='lower right', fontsize='small')
         plt.grid(True, axis='y')
         plt.xlabel('epoch')
@@ -614,11 +698,14 @@ class Model(object):
     def train(self, n_epochs=100, patience=10, verbose=True):
         """
         Train the model
-        :param n_epochs: number of training epochs to perform
+        :param n_epochs: max number of training epochs to perform
+        :param patience: epochs to continue training if validation score not improved
+        :param verbose: show training cost after each batch
         :return: test performance and test probabilities
         """
         epoch = 0           # keep track of number of epochs we ran
         best_val_perf = 0   # keep track of best validation score
+        best_val_recall = 0    # keep track of best validation recall@1 score
         test_perf = 0       # keep track of current test score
         test_probas = None  # keep track of current best probabilities
 
@@ -685,7 +772,7 @@ class Model(object):
                 batch_cost = self.train_model()
                 if verbose: logger.info("epoch %i: batch %i/%i cost: %.9f" % (epoch, minibatch_index+1, n_train_batches, batch_cost))
                 epoch_cost += batch_cost
-                self.set_zero(self.zero_vec)  # TODO: check what this does?
+                self.set_zero(self.zero_vec)  # Set embeddings[0] to zero vector?
                 bar.update()
             ### we trained the model on all the data once! ###
 
@@ -698,9 +785,9 @@ class Model(object):
             logger.info("")
             logger.info("Evaluating Training set:")
             # evaluation for each model id in data['train']['id']
-            train_perfs = self.compute_and_save_performance_models("train")
+            train_perfs, _ = self.compute_and_save_performance_models("train")
             train_perf = np.average(train_perfs)
-            logger.info("epoch %i: train perf %.9f%%" % (epoch, train_perf*100))
+            logger.info("epoch %i: train perf=%.9f%%" % (epoch, train_perf*100))
 
             ###
             # Compute VALIDATION performance:
@@ -708,27 +795,19 @@ class Model(object):
             logger.info("")
             logger.info("Evaluating Validation set:")
             # evaluation for each model id in data['val']['id']
-            val_perfs = self.compute_and_save_performance_models("val")
+            val_perfs, val_recalls = self.compute_and_save_performance_models("val", compute_recalls=True)
             val_perf = np.average(val_perfs)
-            logger.info('epoch %i: val_perf %.9f%%' % (epoch, val_perf*100))
+            logger.info('epoch %i: val_perf=%.9f%%' % (epoch, val_perf*100))
 
             ###
             # If doing better on validation set, measure each model test performance and same model parameters!
             ###
-            if val_perf > best_val_perf:
+            if val_perf > best_val_perf or val_recalls[10][1] > best_val_recall:
+                logger.info("")
                 logger.info("Improved average validation score!")
                 best_val_perf = val_perf
+                best_val_recall = val_recalls[10][1]  # score of 1 in 10: R@1
                 patience = self.patience  # reset patience to initial value
-
-                ###
-                # Compute TEST performance:
-                ###
-                # logger.info("")
-                # logger.info("Evaluating Test set:")
-                # test_perfs = self.compute_and_save_performance_models("test")
-                # test_perf = np.average(test_perfs)
-                # logger.info('epoch %i, test_perf %f%%' % (epoch, test_perf*100))
-                # test_probas = [self.compute_probas(self.data['test'], i) for i in xrange(n_test_batches)]  # probability of being a true response for each batch
 
                 # Save current best model parameters.
                 logger.info("")
@@ -741,7 +820,6 @@ class Model(object):
                 with open('%s/%s_best_M.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self.M.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 # Save model.
-                logger.info("")
                 logger.info("Saving model...")
                 with open("%s/%s_model.pkl" % (self.save_path, self.save_prefix), 'wb') as handle:
                     cPickle.dump(self, handle, protocol=cPickle.HIGHEST_PROTOCOL)
@@ -761,23 +839,37 @@ class Model(object):
         return test_perf  # , test_probas
 
     def compute_recall_ks(self, probas):
-        def recall(probas, k, group_size):
-            """
-            Return accuracy to get the true response in the top k from a group of responses according to current probabilities
-            :param probas: current learned probabilities
+        """
+        Return accuracy to get the true response in the top k from a group of responses according to current probabilities
+        :param probas: current learned probabilities
+        """
+        """
+        def recall(k, group_size):
+            '''
             :param k: the margin in which the true response must be
             :param group_size:  the number of responses to collect
             :return: accuracy
-            """
-            test_size = 10
-            n_batches = len(probas) // test_size
+            '''
             n_correct = 0  # keep track of the number of times we got the true response in the top k
-            for i in xrange(n_batches):
-                batch = np.array(probas[i*test_size: (i+1)*test_size])[:group_size]
+            for i in xrange(num_false_responses):
+                batch = [probas[i], probas[i+split_index]]  # probas of the true response, and a random one for the same context
                 indices = np.argpartition(batch, -k)[-k:]  # get top k highest probabilities
+                if 0 in indices:  # assumes the true context-response pair is the first one
+                    n_correct += 1
+            return n_correct / num_false_responses
+        """
+        logger.info("Computing recalls...")
+        def recall(k, group_size):
+            test_size = 10  # 10 responses for each context: 1 true, 9 false
+            n_batches = len(probas) // test_size
+            n_correct = 0
+            for i in xrange(n_batches):
+                batch = np.array(probas[i*test_size: (i+1)*test_size])  # get the 10 probas for that context
+                batch = [batch[0]] + random.sample(batch[1:], group_size-1)  # [0]=true answer & sample of group_size-1 false responses
+                indices = np.argpartition(batch, -k)[-k:]  # get the top k probas
                 if 0 in indices:
                     n_correct += 1
-            return n_correct / (len(probas) / test_size)
+            return n_correct / (len(probas)/test_size)
 
         recall_k = {}
         for group_size in [2, 5, 10]:
@@ -785,75 +877,107 @@ class Model(object):
             logger.info('group_size: %d' % group_size)
             for k in [1, 2, 5]:
                 if k < group_size:
-                    recall_k[group_size][k] = recall(probas, k, group_size)
+                    recall_k[group_size][k] = recall(k, group_size)
                     logger.info('recall@%d = %s' % (k, recall_k[group_size][k]))
         return recall_k
 
-    def retrieve(self, context_set=None, response_set=None, k=10, batch_size=100):
+    def retrieve(self, context_set=None, context_embs=None, response_set=None, response_embs=None, k=10, batch_size=100):
         """
-        For each context in the context_set, return the k most probable responses from the response_set.
-        :param context_set: list of contexts to query. default=data[train][c]
-        :param response_set: list of responses to try for each context. default=data[train][r]
-        :param k: number of responses to consider
-        :param batch_size: number of contexts to consider at a time.
+        For each context in the context_set, return the k most probable responses from the response_set
+        :param context_set: list of contexts strings to query. default=data[train][c]
+        :param context_embs: list of context embeddings to combine with responses (used for speedup when doing multiple calls)
+        :param response_set: list of responses strings to try for each context. default=data[train][r]
+        :param response_embs: list of response embeddings to combine with contexts (used for speedup when doing multiple calls)
+        :param k: number of top responses to retrieve
+        :param batch_size: number of contexts to consider at a time
         """
         if response_set is None or len(response_set) == 0:
             response_set = copy.deepcopy(self.data['train']['r'])
+            # convert response_set from idx to string!!
+            response_set_str = []
+            for r in response_set:
+                response_set_str.append(self.indices2string(r))
+        else:
+            response_set_str = copy.deepcopy(response_set)
+            if response_embs is None or len(response_embs) == 0:
+                # convert response_set from string to idx!!
+                response_set = []
+                for r in response_set_str:
+                    response_set.append(self.string2indices(r))
+
         if context_set is None or len(context_set) == 0:
             context_set = copy.deepcopy(self.data['train']['c'])
+            # convert context_set from idx to string!!
+            context_set_str = []
+            for c in context_set:
+                context_set_str.append(self.indices2string(c))
+        else:
+            context_set_str = copy.deepcopy(context_set)
+            if context_embs is None or len(context_embs) == 0:
+                # convert context_set from string to idx!!
+                context_set = []
+                for c in context_set_str:
+                    context_set.append(self.string2indices(c))
 
-        ###
-        # Compute embedding of each response
-        ###
-        logger.info("Computing response embeddings...")
-        # Pad response set to be divisible by batch_size
-        length = len(response_set)
-        while len(response_set) % self.batch_size != 0:
-            response_set.append(response_set[0])
-        # Compute embeddings
-        n_batches = len(response_set) // self.batch_size
-        embedded_responses = []  # list of response embeddings
-        bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
-        for i in xrange(n_batches):
-            embedded_responses.extend(self.compute_response_embeddings(response_set, i))
-            bar.update()
-        print ""
-        # Ignore padded embeddings
-        embedded_responses = embedded_responses[:length]
-        response_set = response_set[:length]
+        if response_embs is None or len(response_embs) == 0:
+            ###
+            # Compute embedding of each response
+            ###
+            logger.info("Computing response embeddings...")
+            # Pad response set to be divisible by batch_size
+            length = len(response_set)
+            while len(response_set) % self.batch_size != 0:
+                response_set.append(response_set[0])
+            # Compute embeddings
+            n_batches = len(response_set) // self.batch_size
+            response_embs = []  # list of response embeddings
+            bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
+            for i in xrange(n_batches):
+                response_embs.extend(self.compute_response_embeddings(response_set, i))
+                bar.update()
+            print ""
+            # Ignore padded embeddings
+            response_embs = response_embs[:length]
+            response_set = response_set[:length]
 
-        ###
-        # Compute embedding of each context
-        ###
-        logger.info("Computing context embeddings...")
-        # Pad context set to be divisible by batch_size
-        length = len(context_set)
-        while len(context_set) % self.batch_size != 0:
-            context_set.append(context_set[0])
-        # Compute embeddings
-        n_batches = len(context_set) // self.batch_size
-        embedded_contexts = []  # list of response embeddings
-        bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
-        for i in xrange(n_batches):
-            embedded_contexts.extend(self.compute_context_embeddings(context_set, i))
-            bar.update()
-        print ""
-        # Ignore padded embeddings
-        embedded_contexts = embedded_contexts[:length]
-        context_set = context_set[:length]
+        if context_embs is None or len(context_embs) == 0:
+            ###
+            # Compute embedding of each context
+            ###
+            logger.info("Computing context embeddings...")
+            # Pad context set to be divisible by batch_size
+            length = len(context_set)
+            while len(context_set) % self.batch_size != 0:
+                context_set.append(context_set[0])
+            # Compute embeddings
+            n_batches = len(context_set) // self.batch_size
+            context_embs = []  # list of context embeddings
+            bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
+            for i in xrange(n_batches):
+                context_embs.extend(self.compute_context_embeddings(context_set, i))
+                bar.update()
+            print ""
+            # Ignore padded embeddings
+            context_embs = context_embs[:length]
+            context_set = context_set[:length]
 
         retrieved_data = {
-            'c': context_set,  # each context
-            'r': [],  # list of k responses for each context
-            'true_r': response_set  # true response for each context
+            'c': context_set_str,  # each context
+            'c_embs': context_embs,
+            'r': response_set_str,  # true response for each context
+            'r_embs': response_embs,
+            'r_retrieved': [],  # list of k responses for each context
+            'r_retrieved_embs': []
         }
+        assert len(retrieved_data['c']) == len(retrieved_data['r']) == len(retrieved_data['c_embs']) == len(retrieved_data['r_embs'])
 
         e_context = T.fmatrix('e_context')  # (batch_size, hidden_size)
         e_responses = T.fmatrix('e_responses')  # (#_responses, hidden_size)
 
-        dp = T.dot(e_context, T.dot(e_responses, self.M.T).T)
+        dp = T.dot(e_context, T.dot(e_responses, self.M.T).T)  # (batch_size, #of_responses)
+        dp += self.b
         o = T.nnet.sigmoid(dp)
-        o = T.clip(o, 1e-7, 1.0-1e-7)  # (batch_size, #of_responses)
+        o = T.clip(o, 1e-7, 1.0-1e-7)
         # proba = T.concatenate([(1-o).reshape((-1,1)), o.reshape((-1,1))], axis=1)  # (batch_size*#_responses , 2)
 
         get_response_probas = theano.function(
@@ -863,22 +987,24 @@ class Model(object):
         )
 
         for c_idx in range(0, len(embedded_contexts), batch_size):
-            end = min(c_idx+1+batch_size, len(embedded_contexts))
+            end = min(c_idx+batch_size, len(embedded_contexts))
             logger.info("Retrieving top %d responses for context %d-->%d/%d..." % (k, c_idx+1, end, len(embedded_contexts)))
-            probas = get_response_probas(embedded_contexts[c_idx: end], embedded_responses)  # (batch_size, #_responses)
-            logger.info("average proba of true responses: %.9f" % np.mean([probas[i, c_idx+i] for i in range(batch_size)]))
-
-            # get top k responses
-            top_k_indices = np.argpartition(probas, -k)[:, -k:]  # (batch_size, k)
-
-            for b in range(batch_size):
-                if c_idx+b in top_k_indices[b]:
-                    logger.info("  Got true response!")
+            probas = get_response_probas(embedded_contexts[c_idx: end], embedded_responses)  # (batch_size, #of_responses)
             
-                responses = [response_set[i] for i in top_k_indices[b]]
-                retrieved_data['r'].append(responses)
-                # logger.debug("context: %s" % context_set[c_idx+b])
-                # logger.debug("responses: %s" % (responses,))
+            # NOTE: the next line is only true when response_set & context_set are well alligned!
+            # logger.info("average proba of true responses: %.9f" % np.mean([probas[i, c_idx+i] for i in range(probas.shape[0])]))
 
-        assert len(retrieved_data['c']) == len(retrieved_data['r'])
+            # get top k responses: from less probable to most probable
+            top_k_indices = np.argpartition(probas, -k)[:, -k:]  # (batch_size, k)
+            for b in range(top_k_indices.shape[0]):
+                # NOTE: the next 2 lines are only true when response_set & context_set are well alligned!
+                # if c_idx+b in top_k_indices[b]:
+                #     logger.info("  Got true response!")
+            
+                ret_responses = [response_set_str[i] for i in top_k_indices[b]]
+                ret_response_embs = [response_embs[i] for i in top_k_indices[b]]
+                retrieved_data['r_retrieved'].append(ret_responses)
+                retrieved_data['r_retrieved_embs'].append(ret_response_embs)
+
+        assert len(retrieved_data['c']) == len(retrieved_data['r_retrieved']) == len(retrieved_data['r_retrieved_embs'])
         return retrieved_data
