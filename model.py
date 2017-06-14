@@ -967,7 +967,8 @@ class Model(object):
             'r': response_set_str,  # true response for each context
             'r_embs': response_embs,
             'r_retrieved': [],  # list of k responses for each context
-            'r_retrieved_embs': []
+            'r_retrieved_embs': [],
+            'proba_retrieved': []  # list of k probabilities for each context
         }
         assert len(retrieved_data['c']) == len(retrieved_data['r']) == len(retrieved_data['c_embs']) == len(retrieved_data['r_embs'])
 
@@ -986,25 +987,27 @@ class Model(object):
             name='get_response_probas'
         )
 
-        for c_idx in range(0, len(embedded_contexts), batch_size):
-            end = min(c_idx+batch_size, len(embedded_contexts))
-            logger.info("Retrieving top %d responses for context %d-->%d/%d..." % (k, c_idx+1, end, len(embedded_contexts)))
-            probas = get_response_probas(embedded_contexts[c_idx: end], embedded_responses)  # (batch_size, #of_responses)
+        for c_idx in range(0, len(context_embs), batch_size):
+            end = min(c_idx+batch_size, len(context_embs))
+            logger.info("Retrieving top %d responses for context %d-->%d/%d..." % (k, c_idx+1, end, len(context_embs)))
+            probas = get_response_probas(context_embs[c_idx: end], response_embs)  # (batch_size, #of_responses)
             
             # NOTE: the next line is only true when response_set & context_set are well alligned!
             # logger.info("average proba of true responses: %.9f" % np.mean([probas[i, c_idx+i] for i in range(probas.shape[0])]))
 
             # get top k responses: from less probable to most probable
             top_k_indices = np.argpartition(probas, -k)[:, -k:]  # (batch_size, k)
-            for b in range(top_k_indices.shape[0]):
+            for b in range(top_k_indices.shape[0]):  # for each batch of contexts
                 # NOTE: the next 2 lines are only true when response_set & context_set are well alligned!
                 # if c_idx+b in top_k_indices[b]:
                 #     logger.info("  Got true response!")
             
                 ret_responses = [response_set_str[i] for i in top_k_indices[b]]
                 ret_response_embs = [response_embs[i] for i in top_k_indices[b]]
+                ret_probas = [probas[b][i] for i in top_k_indices[b]]
                 retrieved_data['r_retrieved'].append(ret_responses)
                 retrieved_data['r_retrieved_embs'].append(ret_response_embs)
+                retrieved_data['proba_retrieved'].append(ret_probas)
 
         assert len(retrieved_data['c']) == len(retrieved_data['r_retrieved']) == len(retrieved_data['r_retrieved_embs'])
         return retrieved_data
