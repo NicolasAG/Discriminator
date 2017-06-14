@@ -2,8 +2,50 @@ import argparse
 import cPickle
 import random
 import copy
+import numpy as np
 import numpy.random as np_rnd
 from datetime import datetime
+
+W2V_FILE = '../../data/embeddings/word2vec/GoogleNews-vectors-negative300.bin'
+GLOVE_FILE = '../../data/embeddings/glove.840B.300d.txt'
+
+
+def load_bin_vec(fname, vocab):
+    """
+    Loads 300x1 word vecs from Google (Mikolov) word2vec
+    """
+    word_vecs = {}
+    with open(fname, "rb") as f:
+        header = f.readline()
+        vocab_size, layer1_size = map(int, header.split())
+        binary_len = np.dtype('float32').itemsize * layer1_size
+        for line in xrange(vocab_size):
+            word = []
+            while True:
+                ch = f.read(1)
+                if ch == ' ':
+                    word = ''.join(word).lower()
+                    break
+                if ch != '\n':
+                    word.append(ch)   
+            if word in vocab:
+               word_vecs[word] = np.fromstring(f.read(binary_len), dtype='float32')  
+            else:
+                f.read(binary_len)
+    return word_vecs
+
+def load_glove_vec(fname, vocab):
+    """
+    Loads word vecs from gloVe
+    """
+    word_vecs = {}
+    with open(fname, "rb") as f:
+        for i,line in enumerate(f):
+            L = line.split()
+            word = L[0].lower()
+            if word in vocab:
+                word_vecs[word] = np.array(L[1:], dtype='float32')
+    return word_vecs
 
 
 def string2indices(p_str, str_to_idx, bpe=None):
@@ -93,6 +135,7 @@ def main():
     parser.add_argument('--data_embeddings_prefix', type=str, default='W', help='File name of new data embeddings')
     parser.add_argument('--embedding_size', type=int, default=300, help='Size of word embedding')
     parser.add_argument('--random_model', type='bool', default='True', help='Flag to add a random retrieval model as part of the new data')
+    parser.add_argument('--k', type=int, default=9, help='Number of counter examples for validation and test sets')
     args = parser.parse_args()
     print "args: ", args
 
@@ -132,50 +175,46 @@ def main():
         'test': {'c': [], 'r': [], 'y': [], 'id': []},
     }
 
-    # add TRUE responses to the data train, validation, and test sets.
+    # add TRUE responses to the data train set
     data['train']['c'].extend(train_contexts)
     data['train']['r'].extend(train_true_responses)
     data['train']['y'].extend([1] * len(train_true_responses))
     data['train']['id'].extend(['true'] * len(train_true_responses))
-
-    data['val']['c'].extend(val_contexts)
-    data['val']['r'].extend(val_true_responses)
-    data['val']['y'].extend([1] * len(val_true_responses))
-    data['val']['id'].extend(['true'] * len(val_true_responses))
-
-    data['test']['c'].extend(test_contexts)
-    data['test']['r'].extend(test_true_responses)
-    data['test']['y'].extend([1] * len(test_true_responses))
-    data['test']['id'].extend(['true'] * len(test_true_responses))
-
     if args.random_model:
-        # get the list of RANDOM responses.
         train_random_responses = random.sample(train_true_responses, len(train_true_responses))
-        # random.shuffle(train_random_responses)
-        val_random_responses = random.sample(val_true_responses, len(val_true_responses))
-        # random.shuffle(val_random_responses)
-        test_random_responses = random.sample(test_true_responses, len(test_true_responses))
-        # random.shuffle(test_random_responses)
-        
-        print "\ntrain random responses:"
-        print_k(train_random_responses, ubuntu_idx_to_str)
-        print ""
-
-        # add RANDOM responses to the data train, validation, and test sets.
+        # add RANDOM responses to the data train set
         data['train']['c'].extend(train_contexts)
         data['train']['r'].extend(train_random_responses)
         data['train']['y'].extend([0] * len(train_random_responses))
         data['train']['id'].extend(['rand'] * len(train_random_responses))
 
-        data['val']['c'].extend(val_contexts)
-        data['val']['r'].extend(val_random_responses)
-        data['val']['y'].extend([0] * len(val_random_responses))
-        data['val']['id'].extend(['rand'] * len(val_random_responses))
+    for valid_idx in xrange(len(val_contexts)):
+        # add TRUE responses to the validation set
+        data['val']['c'].append(val_contexts[valid_idx])
+        data['val']['r'].append(val_true_responses[valid_idx])
+        data['val']['y'].append(1)
+        data['val']['id'].append('true')
+        if args.random_model:
+            val_random_responses = random.sample(val_true_responses, args.k)
+            for false_idx in xrange(args.k):
+                data['val']['c'].append(val_contexts[valid_idx])
+                data['val']['r'].append(val_random_responses[false_idx])
+                data['val']['y'].append(0)
+                data['val']['id'].append('rand')
 
-        data['test']['c'].extend(test_contexts)
-        data['test']['r'].extend(test_random_responses)
-        data['test']['y'].extend([0] * len(test_random_responses))
-        data['test']['id'].extend(['rand'] * len(test_random_responses))
+    for test_idx in xrange(len(test_contexts)):
+        # add TRUE responses to the validation set
+        data['test']['c'].append(test_contexts[test_idx])
+        data['test']['r'].append(test_true_responses[test_idx])
+        data['test']['y'].append(1)
+        data['test']['id'].append('true')
+        if args.random_model:
+            test_random_responses = random.sample(test_true_responses, args.k)
+            for false_idx in xrange(args.k):
+                data['test']['c'].append(test_contexts[test_idx])
+                data['test']['r'].append(test_random_responses[false_idx])
+                data['test']['y'].append(0)
+                data['test']['id'].append('rand')
 
     # Making sure each context has a unique response, flag, and model_id
     assert len(data['train']['c']) == len(data['train']['r']) == len(data['train']['y']) == len(data['train']['id'])
@@ -185,8 +224,8 @@ def main():
     print "New dataset created!"
     if args.random_model:
         print 'New number of training examples: true+rand = %d' % len(data['train']['c'])
-        print 'New number of validation examples: true+rand = %d' % len(data['val']['c'])
-        print 'New number of testing examples: true+rand = %d' % len(data['test']['c'])
+        print 'New number of validation examples: true+%d*rand = %d' % (args.k, len(data['val']['c']))
+        print 'New number of testing examples: true+%drand = %d' % (args.k, len(data['test']['c']))
     else:
         print 'New number of training examples: true = %d' % len(data['train']['c'])
         print 'New number of validation examples: true = %d' % len(data['val']['c'])
@@ -219,9 +258,15 @@ def main():
     # SAVE RANDOM WORD EMBEDDINGS
     # .pkl will have (word embeddings, str_to_idx map)
     ###
-    print "\nSaving random word embeddings in %s/%s_%s_ubuntu_words.pkl..." % (args.data_dir, args.data_embeddings_prefix, args.embedding_size)
     vocab_size = len(ubuntu_dict)
     random_word_embeddings = np_rnd.random((vocab_size, args.embedding_size))
+    # grab pretrained embeddings from glove:
+    print "loading word embeddings from glove..."
+    word2vec = load_glove_vec(GLOVE_FILE, ubuntu_str_to_idx.keys())
+    for idx in xrange(vocab_size):
+        if ubuntu_idx_to_str[idx] in word2vec:
+            random_word_embeddings[idx] = word2vec[ubuntu_idx_to_str[idx]]
+    print "\nSaving word embeddings in %s/%s_%s_ubuntu_words.pkl..." % (args.data_dir, args.data_embeddings_prefix, args.embedding_size)
     w_file = open("%s/%s_%d_ubuntu_words.pkl" % (args.data_dir, args.data_embeddings_prefix, args.embedding_size), 'wb')
     cPickle.dump((random_word_embeddings, ubuntu_str_to_idx, ubuntu_idx_to_str), w_file, protocol=cPickle.HIGHEST_PROTOCOL)
     w_file.close()

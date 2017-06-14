@@ -4,7 +4,6 @@ import random
 import copy
 import numpy.random as np_rnd
 from datetime import datetime
-from bpe.apply_bpe import BPE
 
 
 def string2indices(p_str, str_to_idx, bpe=None):
@@ -37,28 +36,42 @@ def indices2string(p_indices, idx_to_str, bpe=None):
         return ' '.join([idx_to_str[idx] for idx in p_indices if idx in idx_to_str])
 
 
-def process_dialogues(dialogues):
-    '''splits into contexts/ responses '''
+def process_dialogues(dialogues, str_to_idx):
+    """
+    splits list of dialogues into lists of contexts & responses like so:
+    context = first 2,3,4,... utterances & response the next utterance
+    :param dialogues: list of idx formated dialogues
+    :param str_to_idx: dictionary from string to idx
+    :return: list of contexts, list of responses
+    """
     contexts = []
     responses = []
     for d in dialogues:
         # d_proc = d[:-1]  # remove the last '__eou__' token
-        index_list = [i for i, j in enumerate(d) if j == 11]  # 11 = '__eot__' in ubuntu
-        split = index_list[-1] + 1
-        context = filter(lambda idx: idx!=10, d[:split])  # remove '__eou__' from context
-        contexts.append(context)
-        response = filter(lambda idx: idx!=10, d[split:])  # remove '__eou__' from response
-        responses.append(response)
+        index_list = [i for i, j in enumerate(d) if j == str_to_idx['__eot__']]  # split at every __eot__
+        if len(index_list) < 2:
+            print "ignoring short dialogues: # of __eot__ = %d < 2" % len(index_list)
+        for i, start_idx in enumerate(index_list):
+            if i == 0:
+                continue  # take at least 2 turns for the context
+            elif i == len(index_list)-1:  # if last __eot__ token:
+                end_idx = len(d)  # response goes until the end of the dialogue
+            else:
+                end_idx = index_list[i+1]
+            context = filter(lambda idx: idx!=str_to_idx['__eou__'], d[:start_idx])  # remove all __eou__ and last __eot__ from context
+            contexts.append(context)
+            response = filter(lambda idx: idx!=str_to_idx['__eou__'], d[start_idx+1:end_idx])  # remove all __eou__ and first __eot__ from response
+            responses.append(response)
     return contexts, responses
 
 
-def print_k(list, idx_2_str=None, ubuntu_bpe=None, k=10):
-    # start = random.randint(0, len(list)-k-1)
+def print_k(elements, idx_2_str=None, ubuntu_bpe=None, k=10):
+    # start = random.randint(0, len(elements)-k-1)
     start = 0
-    if idx_2_str and ubuntu_bpe:
-        top_list = map(lambda e : indices2string(e, idx_2_str, ubuntu_bpe), list[start:start+k])
+    if idx_2_str:
+        top_list = map(lambda e : indices2string(e, idx_2_str, ubuntu_bpe), elements[start:start+k])
     else:
-        top_list = list[start:start+k]
+        top_list = elements[start:start+k]
     for e in top_list:
         print e
 
@@ -76,172 +89,90 @@ def main():
     parser = argparse.ArgumentParser()
     parser.register('type', 'bool', lambda v: v.lower() in ("yes", "true", "t", "1"))
     parser.add_argument('--data_dir', type=str, default='.', help='Input/Output directory to find original data and save new data')
-    parser.add_argument('--inputs', nargs='+', type=str, default=None, help='File(s) of responses to be added')
     parser.add_argument('--data_fname_prefix', type=str, default='dataset', help='File name of new data')
     parser.add_argument('--data_embeddings_prefix', type=str, default='W', help='File name of new data embeddings')
     parser.add_argument('--embedding_size', type=int, default=300, help='Size of word embedding')
     parser.add_argument('--random_model', type='bool', default='True', help='Flag to add a random retrieval model as part of the new data')
-    parser.add_argument('--oversampling', type='bool', default='True', help='Flag to oversample true responses in order to have 50/50 true and false responses in the new data')
+    parser.add_argument('--k', type=int, default=9, help='Number of counter examples for validation and test sets')
     args = parser.parse_args()
     print "args: ", args
 
-    ###
-    # Load the original Ubuntu dataset in BPE format - only TRUE responses
-    ###
     print "\nLoading original ubuntu data..."
-    dialogues = cPickle.load(open('%s/bpe/Train.dialogues.pkl' % args.data_dir, 'rb'))
-    # get the list of contexts, and the list of TRUE responses.
-    contexts, true_responses = process_dialogues(dialogues)
-
     ###
-    # LOAD BPE DICTIONARIES: map bpe_indices/bpe_words - vocab ~ 5,000
+    # LOAD WORD DICTIONARIES: map word_indices/bpe - vocab ~ 5,000
     ###
-    ubuntu_bpe = BPE(open('%s/bpe/Ubuntu_Codes_5000.txt' % args.data_dir, 'r').readlines())
-    ubuntu_bpe_dict = cPickle.load(open('%s/bpe/Dataset.dict.pkl' % args.data_dir, 'rb'))
-    ubuntu_bpe_str_to_idx = dict([(tok, tok_id) for tok, tok_id, _, _ in ubuntu_bpe_dict])
-    ubuntu_bpe_idx_to_str = dict([(tok_id, tok) for tok, tok_id, _, _ in ubuntu_bpe_dict])
-    print "BPE dictionary length: ", len(ubuntu_bpe_dict)
-    print "original data loaded!"
-
-    print "contexts:"
-    print_k(contexts, ubuntu_bpe_idx_to_str, ubuntu_bpe)
-    print "true responses:"
-    print_k(true_responses, ubuntu_bpe_idx_to_str, ubuntu_bpe)
-
+    ubuntu_dict = cPickle.load(open('%s/bpe/Dataset.dict.pkl' % args.data_dir, 'rb'))
+    ubuntu_str_to_idx = dict([(tok, tok_id) for tok, tok_id, _, _ in ubuntu_dict])
+    ubuntu_idx_to_str = dict([(tok_id, tok) for tok, tok_id, _, _ in ubuntu_dict])
+    print "Word dictionary length: ", len(ubuntu_dict)
     ###
-    # LOAD GENERATED DATA
+    # Load the original Twitter dataset - only TRUE responses
     ###
-    model_responses = {}  # dictionary of the form {'model_id':[list of responses], ...}
+    train_dialogues = cPickle.load(open('%s/bpe/Train.dialogues.pkl' % args.data_dir, 'rb'))
+    train_contexts, train_true_responses = process_dialogues(train_dialogues, ubuntu_str_to_idx)  # get contexts and TRUE responses.
+    print "number of train dialogues: %d - produced %d context-response pairs" % (len(train_dialogues), len(train_contexts))
+    val_dialogues = cPickle.load(open('%s/bpe/Valid.dialogues.pkl' % args.data_dir, 'rb'))
+    val_contexts, val_true_responses = process_dialogues(val_dialogues, ubuntu_str_to_idx)  # get contexts and TRUE responses.
+    print "number of val dialogues: %d - produced %d context-response pairs" % (len(val_dialogues), len(val_contexts))
+    test_dialogues = cPickle.load(open('%s/bpe/Test.dialogues.pkl' % args.data_dir, 'rb'))
+    test_contexts, test_true_responses = process_dialogues(test_dialogues, ubuntu_str_to_idx)  # get contexts and TRUE responses.
+    print "number of test dialogues: %d - produced %d context-response pairs" % (len(test_dialogues), len(test_contexts))
 
-    # HRED, VHRED, c_tfidf, r_tfidf, random, true
-
-    if args.inputs:
-        for response_file_name in args.inputs:
-            print "\nProcessing ", response_file_name, "..."
-            generated_data = open(response_file_name, 'rb')
-
-            # Get the responses
-            generated_str_responses = []
-            for line in generated_data:
-                line = line.replace(' </s>\n', '')
-                generated_str_responses.append(line.replace('\n', ''))
-
-            generated_bpe_responses = map(lambda r: string2indices(r, ubuntu_bpe_str_to_idx, ubuntu_bpe), generated_str_responses)
-
-            assert len(generated_bpe_responses) == len(contexts)
-            model_responses[response_file_name] = generated_bpe_responses
-
-            print_k(generated_str_responses)
-            print "Finished processing file ", response_file_name
+    print "\ntrain contexts:"
+    print_k(train_contexts, ubuntu_idx_to_str)
+    print "train true responses:"
+    print_k(train_true_responses, ubuntu_idx_to_str)
 
     ###
     # CREATE THE DATA SET
     ###
     print "\nCreating new dataset..."
-    train_val_split_index = int(len(contexts) * 0.8)  # 80% training
-    val_test_split_index = int(len(contexts) * 0.9)  # 10% validation 10% test
-    print "number of samples =", len(contexts)
-    print "train samples =", train_val_split_index
-    print "val samples =", val_test_split_index - train_val_split_index
-    print "test samples =", len(contexts) - val_test_split_index
-
-    # Split the contexts into train/val/test
-    train_contexts = contexts[:train_val_split_index]
-    val_contexts = contexts[train_val_split_index:val_test_split_index]
-    test_contexts = contexts[val_test_split_index:]
-    # Split the true responses into train/val/test
-    train_true_responses = true_responses[:train_val_split_index]
-    val_true_responses = true_responses[train_val_split_index:val_test_split_index]
-    test_true_responses = true_responses[val_test_split_index:]
-
     data = {
         'train': {'c': [], 'r': [], 'y': [], 'id': []},
         'val': {'c': [], 'r': [], 'y': [], 'id': []},
         'test': {'c': [], 'r': [], 'y': [], 'id': []},
     }
 
-    # add TRUE responses to the data train, validation, and test sets.
+    # add TRUE responses to the data train set
     data['train']['c'].extend(train_contexts)
     data['train']['r'].extend(train_true_responses)
     data['train']['y'].extend([1] * len(train_true_responses))
     data['train']['id'].extend(['true'] * len(train_true_responses))
-
-    data['val']['c'].extend(val_contexts)
-    data['val']['r'].extend(val_true_responses)
-    data['val']['y'].extend([1] * len(val_true_responses))
-    data['val']['id'].extend(['true'] * len(val_true_responses))
-
-    data['test']['c'].extend(test_contexts)
-    data['test']['r'].extend(test_true_responses)
-    data['test']['y'].extend([1] * len(test_true_responses))
-    data['test']['id'].extend(['true'] * len(test_true_responses))
-
     if args.random_model:
-        # get the list of RANDOM responses.
-        random_responses = copy.deepcopy(true_responses)
-        random.shuffle(random_responses)
-        print "\nrandom responses:"
-        print_k(random_responses, ubuntu_bpe_idx_to_str, ubuntu_bpe)
-        print ""
-
-        # Split the random responses into train/val/test
-        train_random_responses = random_responses[:train_val_split_index]
-        val_random_responses = random_responses[train_val_split_index:val_test_split_index]
-        test_random_responses = random_responses[val_test_split_index:]
-
-        # add RANDOM responses to the data train, validation, and test sets.
+        train_random_responses = random.sample(train_true_responses, len(train_true_responses))
+        # add RANDOM responses to the data train set
         data['train']['c'].extend(train_contexts)
         data['train']['r'].extend(train_random_responses)
         data['train']['y'].extend([0] * len(train_random_responses))
         data['train']['id'].extend(['rand'] * len(train_random_responses))
 
-        data['val']['c'].extend(val_contexts)
-        data['val']['r'].extend(val_random_responses)
-        data['val']['y'].extend([0] * len(val_random_responses))
-        data['val']['id'].extend(['rand'] * len(val_random_responses))
+    for valid_idx in xrange(len(val_contexts)):
+        # add TRUE responses to the validation set
+        data['val']['c'].append(val_contexts[valid_idx])
+        data['val']['r'].append(val_true_responses[valid_idx])
+        data['val']['y'].append(1)
+        data['val']['id'].append('true')
+        if args.random_model:
+            val_random_responses = random.sample(val_true_responses, args.k)
+            for false_idx in xrange(args.k):
+                data['val']['c'].append(val_contexts[valid_idx])
+                data['val']['r'].append(val_random_responses[false_idx])
+                data['val']['y'].append(0)
+                data['val']['id'].append('rand')
 
-        data['test']['c'].extend(test_contexts)
-        data['test']['r'].extend(test_random_responses)
-        data['test']['y'].extend([0] * len(test_random_responses))
-        data['test']['id'].extend(['rand'] * len(test_random_responses))
-
-    # add GENERATED responses.
-    for model_name, generated_responses in model_responses.iteritems():
-        # Split the generated responses into train/val/test
-        train_generated_responses = generated_responses[:train_val_split_index]
-        val_generated_responses = generated_responses[train_val_split_index:val_test_split_index]
-        test_generated_responses = generated_responses[val_test_split_index:]
-
-        # add GENERATED responses
-        data['train']['c'].extend(train_contexts)
-        data['train']['r'].extend(train_generated_responses)
-        data['train']['y'].extend([0] * len(train_generated_responses))
-        data['train']['id'].extend([model_name] * len(train_generated_responses))
-
-        data['val']['c'].extend(val_contexts)
-        data['val']['r'].extend(val_generated_responses)
-        data['val']['y'].extend([0] * len(val_generated_responses))
-        data['val']['id'].extend([model_name] * len(val_generated_responses))
-
-        data['test']['c'].extend(test_contexts)
-        data['test']['r'].extend(test_generated_responses)
-        data['test']['y'].extend([0] * len(test_generated_responses))
-        data['test']['id'].extend([model_name] * len(test_generated_responses))
-
-    # add TRUE responses for the TRAINING set to have 50/50 true and false responses
-    if args.oversampling:
-        # get the number of models with negative examples.
-        false_response_models = len(model_responses)
-        if args.random_model:  # random model is also a model with negative examples
-            false_response_models += 1
-
-        # over sample by adding the same amount of true examples (-1 bcs already added true examples once)
-        data['train']['c'].extend(train_contexts * (false_response_models-1))
-        data['train']['r'].extend(train_true_responses * (false_response_models-1))
-        data['train']['y'].extend([1] * len(train_true_responses) * (false_response_models-1))
-        data['train']['id'].extend(['true'] * len(train_true_responses) * (false_response_models-1))
-        # making sure we have same amount of true and false responses in the training set.
-        assert len(filter(lambda flag: flag==0, data['train']['y'])) == len(filter(lambda flag: flag==1, data['train']['y']))
+    for test_idx in xrange(len(test_contexts)):
+        # add TRUE responses to the validation set
+        data['test']['c'].append(test_contexts[test_idx])
+        data['test']['r'].append(test_true_responses[test_idx])
+        data['test']['y'].append(1)
+        data['test']['id'].append('true')
+        if args.random_model:
+            test_random_responses = random.sample(test_true_responses, args.k)
+            for false_idx in xrange(args.k):
+                data['test']['c'].append(test_contexts[test_idx])
+                data['test']['r'].append(test_random_responses[false_idx])
+                data['test']['y'].append(0)
+                data['test']['id'].append('rand')
 
     # Making sure each context has a unique response, flag, and model_id
     assert len(data['train']['c']) == len(data['train']['r']) == len(data['train']['y']) == len(data['train']['id'])
@@ -249,22 +180,14 @@ def main():
     assert len(data['test']['c']) == len(data['test']['r']) == len(data['test']['y']) == len(data['test']['id'])
 
     print "New dataset created!"
-    if args.random_model and args.oversampling:
-        print 'New number of training examples: true+rand+(true+gen)*%d = %d' % (len(model_responses), len(data['train']['c']))
-        print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-        print 'New number of testing examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
-    elif args.oversampling:
-        print 'New number of training examples: (true+gen)*%d = %d' % (len(model_responses), len(data['train']['c']))
-        print 'New number of validation examples: true+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-        print 'New number of testing examples: true+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
-    elif args.random_model:
-        print 'New number of training examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['train']['c']))
-        print 'New number of validation examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-        print 'New number of testing examples: true+rand+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
+    if args.random_model:
+        print 'New number of training examples: true+rand = %d' % len(data['train']['c'])
+        print 'New number of validation examples: true+%d*rand = %d' % (args.k, len(data['val']['c']))
+        print 'New number of testing examples: true+%d*rand = %d' % (args.k, len(data['test']['c']))
     else:
-        print 'New number of training examples: true+gen*%d = %d' % (len(model_responses), len(data['train']['c']))
-        print 'New number of validation examples: true+gen*%d = %d' % (len(model_responses), len(data['val']['c']))
-        print 'New number of testing examples: true+gen*%d = %d' % (len(model_responses), len(data['test']['c']))
+        print 'New number of training examples: true = %d' % len(data['train']['c'])
+        print 'New number of validation examples: true = %d' % len(data['val']['c'])
+        print 'New number of testing examples: true = %d' % len(data['test']['c'])
 
     ###
     # SHUFFLE THE WHOLE TRAINING SET
@@ -294,10 +217,10 @@ def main():
     # .pkl will have (word embeddings, str_to_idx map)
     ###
     print "\nSaving random word embeddings in %s/%s_%s_ubuntu_bpe.pkl..." % (args.data_dir, args.data_embeddings_prefix, args.embedding_size)
-    vocab_size = len(ubuntu_bpe_dict)
+    vocab_size = len(ubuntu_dict)
     random_word_embeddings = np_rnd.random((vocab_size, args.embedding_size))
     w_file = open("%s/%s_%d_ubuntu_bpe.pkl" % (args.data_dir, args.data_embeddings_prefix, args.embedding_size), 'wb')
-    cPickle.dump((random_word_embeddings, ubuntu_bpe_str_to_idx, ubuntu_bpe_idx_to_str), w_file, protocol=cPickle.HIGHEST_PROTOCOL)
+    cPickle.dump((random_word_embeddings, ubuntu_str_to_idx, ubuntu_idx_to_str), w_file, protocol=cPickle.HIGHEST_PROTOCOL)
     w_file.close()
     print "Saved."
 

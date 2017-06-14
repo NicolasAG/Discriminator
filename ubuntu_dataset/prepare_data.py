@@ -7,17 +7,17 @@ def main():
     ###
     # Load the original Ubuntu dataset - only TRUE responses
     ###
-    with open('./big/dataset.pkl', 'rb') as handle:
+    with open('./v1/dataset.pkl', 'rb') as handle:
         train_data, val_data, test_data = cPickle.load(handle)
     print "train: %d" % len(train_data['c'])
     print "val: %d" % len(val_data['c'])
     print "test: %d" % len(test_data['c'])
 
-    with open('./big/vocab.pkl', 'rb') as handle:
+    with open('./v1/vocab.pkl', 'rb') as handle:
         vocab = cPickle.load(handle)
     print "vocab length: %d" % len(vocab)
 
-    with open('./big/W.pkl', 'rb') as handle:
+    with open('./v1/W.pkl', 'rb') as handle:
         w, word_to_idx = cPickle.load(handle)
     print "w shape: %s" % (w.shape,)
     print "word_to_idx length: %d" % len(word_to_idx)
@@ -83,7 +83,7 @@ def main():
             print "ERROR: this should never happen"
             return
 
-    with open("./big/dataset_prepared.pkl", "wb") as handle:
+    with open("./v1/dataset_prepared.pkl", "wb") as handle:
         cPickle.dump((train_data, val_data, test_data), handle, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Saved new dataset."
 
@@ -93,7 +93,7 @@ def main():
     for word, idx in word_to_idx.iteritems():
         idx_to_word[idx] = word
 
-    with open("./big/W_300_ubuntu_big.pkl", 'wb') as handle:
+    with open("./v1/W_300_ubuntu_big.pkl", 'wb') as handle:
         cPickle.dump((w, word_to_idx, idx_to_word), handle, protocol=cPickle.HIGHEST_PROTOCOL)
     print "Saved new W file."
 
