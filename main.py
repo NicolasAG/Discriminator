@@ -93,10 +93,10 @@ def sort_by_len(dataset):
     :param data set: dictionary of contexts, responses, flags
     :return: ordered dictionary
     """
-    c, r, y = dataset['c'], dataset['r'], dataset['y']
+    c, r, y, model_name = dataset['c'], dataset['r'], dataset['y'], dataset['id']
     indices = range(len(y))
     indices.sort(key=lambda i: len(c[i]))
-    for k in ['c', 'r', 'y']:
+    for k in ['c', 'r', 'y', 'id']:
         dataset[k] = np.array(dataset[k])[indices]
 
 def create_model(data, w, word2idx, idx2word, args):
@@ -211,7 +211,7 @@ def main():
     # data sets are dictionaries containing contexts, responses, flag
     with open('%s/%s' % (args.data_path, args.dataset_fname), 'rb') as handle:
         train_data, val_data, test_data = cPickle.load(handle)
-    # W is the word embedding matrix and word2idx is a dictionary.
+    # W is the word embedding matrix and word2idx, idx2word are dictionaries
     with open('%s/%s' % (args.data_path, args.W_fname), 'rb') as handle:
         W, word2idx, idx2word = cPickle.load(handle)
     logger.info("W.shape: %s" % (W.shape,))  # (5092,300) = word embedding for each vocab word

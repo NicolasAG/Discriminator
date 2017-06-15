@@ -61,6 +61,7 @@ class Model(object):
         self.max_seqlen = max_seqlen
         self.batch_size = batch_size
         # Learning parameters:
+        self.hidden_size = hidden_size
         self.patience = patience
         self.optimizer = optimizer
         self.lr = lr
@@ -970,7 +971,8 @@ class Model(object):
             'r_retrieved_embs': [],
             'proba_retrieved': []  # list of k probabilities for each context
         }
-        assert len(retrieved_data['c']) == len(retrieved_data['r']) == len(retrieved_data['c_embs']) == len(retrieved_data['r_embs'])
+        assert len(retrieved_data['c']) == len(retrieved_data['c_embs'])
+        assert len(retrieved_data['r']) == len(retrieved_data['r_embs'])
 
         e_context = T.fmatrix('e_context')  # (batch_size, hidden_size)
         e_responses = T.fmatrix('e_responses')  # (#_responses, hidden_size)
@@ -1009,5 +1011,5 @@ class Model(object):
                 retrieved_data['r_retrieved_embs'].append(ret_response_embs)
                 retrieved_data['proba_retrieved'].append(ret_probas)
 
-        assert len(retrieved_data['c']) == len(retrieved_data['r_retrieved']) == len(retrieved_data['r_retrieved_embs'])
+        assert len(retrieved_data['c']) == len(retrieved_data['r_retrieved']) == len(retrieved_data['r_retrieved_embs']) == len(retrieved_data['proba_retrieved'])
         return retrieved_data
