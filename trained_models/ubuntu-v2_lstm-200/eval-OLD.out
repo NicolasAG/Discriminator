@@ -1,0 +1,52 @@
+removed environment variable LD_LIBRARY_PATH from submit environment - it is considered a security issue
+VIRTUALENV = /nlu/users/nicolas_gontier/py
+THEANO_FLAGS = base_compiledir=/work/.theano-nicolas_gontier,floatX=float32,device=gpu
+gpuarray = /nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/libgpuarray
+CUDA = /usr/local/cuda-8.0/bin
+PATH = /usr/local/cuda-8.0/bin:/nlu/users/nicolas_gontier/py/bin:/work/4028953.1.gpu.q:/opt/rh/devtoolset-2/root/usr/bin:/opt/uge850/bin:/opt/uge850/bin/lx-amd64:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/nicolas_gontier/bin
+LD_LIBRARY_PATH = :/usr/local/cuda-8.0/lib64
+LIBRARY_PATH = /nlu/users/nicolas_gontier/py/lib
+CPATH = /nlu/users/nicolas_gontier/py/include
+HOME = /nlu/users/nicolas_gontier/home
+
+Using gpu device 1: Tesla K10.G1.8GB (CNMeM is disabled, cuDNN 5105)
+/nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/theano/sandbox/cuda/__init__.py:600: UserWarning: Your cuDNN version is more recent than the one Theano officially supports. If you see any problems, try updating Theano or downgrading cuDNN to version 5.
+  warnings.warn(warn)
+2017-06-08 13:02:22,001: __main__: INFO: args: Namespace(W_fname='W.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/v2', dataset_fname='dataset.pkl', emb_penalty=0.001, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./trained_models/ubuntu-v2_lstm-200', load_prefix='lstm-200_adam_ubuntu-v2', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=True, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='lstm-200_adam_ubuntu-v2', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
+2017-06-08 13:02:22,006: __main__: INFO: saved.
+2017-06-08 13:02:22,006: __main__: INFO:
+2017-06-08 13:02:22,007: __main__: INFO: Loading data...
+2017-06-08 13:03:24,264: __main__: INFO: W.shape: (726483, 300)
+2017-06-08 13:03:24,265: __main__: INFO: Number of training examples: 1000000
+2017-06-08 13:03:24,265: __main__: INFO: Number of validation examples: 195600
+2017-06-08 13:03:24,265: __main__: INFO: Number of test examples: 189200
+2017-06-08 13:03:24,265: __main__: INFO: data loaded!
+2017-06-08 13:03:24,265: __main__: INFO:
+2017-06-08 13:03:24,265: __main__: INFO: Loading model...
+2017-06-08 13:04:32,969: __main__: INFO: Model loaded.
+2017-06-08 13:04:32,971: __main__: INFO:
+2017-06-08 13:04:32,972: __main__: INFO: plot learning curves...
+2017-06-08 13:04:33,309: model: INFO: saved plot.
+2017-06-08 13:04:33,598: model: INFO: saved plot.
+2017-06-08 13:04:33,598: __main__: INFO:
+2017-06-08 13:04:33,598: __main__: INFO: Testing the model...
+2017-06-08 13:04:33,977: model: INFO: evaluating rand
+2017-06-08 13:12:32,328: model: INFO: test_perf: 77.654451492%
+2017-06-08 13:12:32,328: model: INFO: evaluating true
+2017-06-08 13:13:24,366: model: INFO: test_perf: 77.531712474%
+2017-06-08 13:13:24,366: model: INFO:
+2017-06-08 13:13:24,366: model: DEBUG: verifying data format for recalls...
+2017-06-08 13:22:18,110: model: INFO: Computing recalls...
+2017-06-08 13:22:18,111: model: INFO: group_size: 2
+2017-06-08 13:22:18,859: model: INFO: recall@1 = 0.859533575778
+2017-06-08 13:22:18,859: model: INFO: group_size: 5
+2017-06-08 13:22:19,686: model: INFO: recall@1 = 0.669771228011
+2017-06-08 13:22:20,548: model: INFO: recall@2 = 0.852027655616
+2017-06-08 13:22:20,548: model: INFO: group_size: 10
+2017-06-08 13:22:21,395: model: INFO: recall@1 = 0.536197564276
+2017-06-08 13:22:22,226: model: INFO: recall@2 = 0.70724797023
+2017-06-08 13:22:23,076: model: INFO: recall@5 = 0.918153755074
+2017-06-08 13:22:23,076: model: INFO:
+2017-06-08 13:22:23,077: model: INFO: Average test_perf=77.593081983%
+
+

@@ -1,0 +1,36 @@
+Using gpu device 14: Tesla K10.G1.8GB (CNMeM is disabled, cuDNN 5105)
+/nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/theano/sandbox/cuda/__init__.py:600: UserWarning: Your cuDNN version is more recent than the one Theano officially supports. If you see any problems, try updating Theano or downgrading cuDNN to version 5.
+  warnings.warn(warn)
+2017-06-21 11:49:36,081: __main__: INFO: args: Namespace(W_fname='W_glove.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/v2', dataset_fname='DE_dataset.pkl', emb_penalty=0.001, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./', load_prefix='lstm-200_adam_ubuntu-v2.4132', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=False, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='lstm-200_adam_ubuntu-v2.4132', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
+2017-06-21 11:49:36,086: __main__: INFO: saved.
+2017-06-21 11:49:36,086: __main__: INFO:
+2017-06-21 11:49:36,086: __main__: INFO: Loading data...
+2017-06-21 11:50:37,202: __main__: INFO: W.shape: (858977, 300)
+2017-06-21 11:50:37,202: __main__: INFO: Number of training examples: 1000192
+2017-06-21 11:50:37,202: __main__: INFO: Number of validation examples: 195600
+2017-06-21 11:50:37,202: __main__: INFO: Number of test examples: 189200
+2017-06-21 11:50:37,202: __main__: INFO: data loaded!
+2017-06-21 11:50:37,202: __main__: INFO:
+2017-06-21 11:50:37,202: __main__: INFO: Loading model...
+2017-06-21 11:51:53,659: __main__: INFO: Model loaded.
+2017-06-21 11:51:53,661: __main__: INFO:
+2017-06-21 11:51:53,662: __main__: INFO: Testing the model...
+2017-06-21 11:51:54,024: model: INFO: evaluating rand
+2017-06-21 12:06:17,064: model: INFO: test_perf: 78.171247357%
+2017-06-21 12:06:17,064: model: INFO: evaluating true
+2017-06-21 12:07:50,196: model: INFO: test_perf: 76.823467230%
+2017-06-21 12:07:50,196: model: INFO:
+2017-06-21 12:07:50,196: model: DEBUG: verifying data format for recalls...
+2017-06-21 12:23:43,188: model: INFO: Computing recalls...
+2017-06-21 12:23:43,189: model: INFO: group_size: 2
+2017-06-21 12:23:43,911: model: INFO: recall@1 = 0.856256343031
+2017-06-21 12:23:43,912: model: INFO: group_size: 5
+2017-06-21 12:23:44,683: model: INFO: recall@1 = 0.663375338295
+2017-06-21 12:23:45,464: model: INFO: recall@2 = 0.851446211096
+2017-06-21 12:23:45,464: model: INFO: group_size: 10
+2017-06-21 12:23:46,381: model: INFO: recall@1 = 0.529167371448
+2017-06-21 12:23:47,283: model: INFO: recall@2 = 0.705133626522
+2017-06-21 12:23:48,195: model: INFO: recall@5 = 0.915722259811
+2017-06-21 12:23:48,196: model: INFO:
+2017-06-21 12:23:48,196: model: INFO: Average test_perf=77.497357294%
+
