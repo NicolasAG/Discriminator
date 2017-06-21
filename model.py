@@ -34,6 +34,7 @@ class Model(object):
                  hidden_size=100,
                  n_recurrent_layers=1,
                  is_bidirectional=False,
+                 dropout_p=0.,
                  # Learning parameters:
                  patience=10,
                  optimizer='adam',
@@ -123,6 +124,8 @@ class Model(object):
                                                      backwards=False,   # forward pass
                                                      grad_clipping=10,  # avoid exploding gradients
                                                      learn_init=True)   # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_p)
 
                     l_bck = lasagne.layers.LSTMLayer(incoming=l_bck,
                                                      num_units=hidden_size,  # number of hidden units in the layer
@@ -131,6 +134,8 @@ class Model(object):
                                                      backwards=True,    # backward pass
                                                      grad_clipping=10,  # avoid exploding gradients
                                                      learn_init=True)   # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_p)
             elif encoder == 'gru':
                 logger.info("Building a bidirectional GRU model")
                 for _ in xrange(n_recurrent_layers):
@@ -140,12 +145,17 @@ class Model(object):
                                                     backwards=False,   # forward pass
                                                     grad_clipping=10,  # avoid exploding gradients
                                                     learn_init=True)   # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_p)
+
                     l_bck = lasagne.layers.GRULayer(incoming=l_bck,
                                                     num_units=hidden_size,  # Number of hidden units in the layer
                                                     mask_input=l_mask,
                                                     backwards=True,    # backward pass
                                                     grad_clipping=10,  # avoid exploding gradients
                                                     learn_init=True)   # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_p)
             elif encoder == 'rnn':
                 logger.info("Building a bidirectional RNN model")
                 for _ in xrange(n_recurrent_layers):
@@ -158,6 +168,8 @@ class Model(object):
                                                           backwards=False,   # forward pass
                                                           grad_clipping=10,  # avoid exploding gradients
                                                           learn_init=True)   # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_p)
 
                     l_bck = lasagne.layers.RecurrentLayer(incoming=l_bck,
                                                           num_units=hidden_size,  # number of hidden units in the layer
@@ -168,6 +180,8 @@ class Model(object):
                                                           backwards=True,    # backward pass
                                                           grad_clipping=10,  # avoid exploding gradients
                                                           learn_init=True)   # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_p)
             else:
                 raise ValueError("Unknown encoder %s", encoder)
             # concatenate forward and backward layers
@@ -184,6 +198,8 @@ class Model(object):
                                                            forgetgate=lasagne.layers.Gate(b=lasagne.init.Constant(2.0)),  # init forget gate bias to 2
                                                            grad_clipping=10,       # avoid exploding gradients
                                                            learn_init=True)        # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_p)
             elif encoder == 'gru':
                 logger.info("Building a GRU model")
                 for _ in xrange(n_recurrent_layers):
@@ -192,6 +208,8 @@ class Model(object):
                                                           mask_input=l_mask,
                                                           grad_clipping=10,       # avoid exploding gradients
                                                           learn_init=True)        # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_p)
             elif encoder == 'rnn':
                 logger.info("Building an RNN model")
                 for _ in xrange(n_recurrent_layers):
@@ -203,22 +221,24 @@ class Model(object):
                                                                 W_hid_to_hid = lasagne.init.Orthogonal(),    # Initializer for hidden-to-hidden weight matrix
                                                                 grad_clipping = 10,  # avoid exploding gradients
                                                                 learn_init = True)   # initial hidden values are learned
+                    if dropout_p > 1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_p)
             else:
                 raise ValueError("Unknown encoder %s", encoder)
 
             self.l_out = l_recurrent
 
-        # Last hidden state of network after feeding it the context:
+        # Hidden states of network at each time step after feeding it the context:
         h_context = lasagne.layers.helper.get_output(
             layer_or_layers=self.l_out,
             inputs={l_in: c_input, l_mask: self.c_mask},  # set parameters of the network units: l_in and l_mask
-            deterministic=False
+            deterministic=False  # if True no dropout, default is False, better to be True at test time
         )
-        # Last hidden state of network after feeding it the response:
+        # Hidden states of network at each time step after feeding it the response:
         h_response = lasagne.layers.helper.get_output(
             layer_or_layers=self.l_out,
             inputs={l_in: r_input, l_mask: self.r_mask},  # set parameters of the network units: l_in and l_mask
-            deterministic=False
+            deterministic=False  # if True no dropout, default is False, better to be True at test time
         )
         # Encoding of the context: take the encoding at the end of the context (self.c_seqlen)
         self.e_context = h_context[T.arange(batch_size), self.c_seqlen].reshape((batch_size, hidden_size))
@@ -357,23 +377,32 @@ class Model(object):
         :param bpe: byte pair encoding object from apply_bpe.py
         :return: a new list of indices corresponding to the given string of words.
         """
+        idx = []
         if bpe:
             bpe_string = bpe.segment(p_str.strip())  # convert from regular to bpe format
-            return [self.word2idx[w] for w in bpe_string.split() if w in self.word2idx]
+            for w in bpe_string.split():
+                idx.append(self.word2idx.get(w, self.word2idx['**unknown**']))
         else:
-            return [self.word2idx[w] for w in p_str.strip().split() if w in self.word2idx]
+            for w in p_str.strip().split():
+                idx.append(self.word2idx.get(w, self.word2idx['**unknown**']))
+        return idx
 
-    def indices2string(self, p_indices, bpe=None):
+    def indices2string(self, p_indices, bpe_separator=None):
         """
         Lookup dictionary from word to index to retrieve the list of words from a list of indices.
         :param p_indices: list of indices corresponding to words.
-        :param bpe: byte pair encoding object from apply_bpe.py
+        :param bpe_separator: token separator from BPE pre-processing
         :return: a new string corresponding to the given list of indices.
         """
-        if bpe:
-            return ' '.join([self.idx2word[idx] for idx in p_indices if idx in self.idx2word]).replace(bpe.separator+' ', '')
+        string = []
+        for idx in p_indices:
+            string.append(self.idx2word.get(idx, '**unknown**'))
+        
+        if bpe_separator:
+            return ' '.join(string).replace(bpe_separator+' ', '')
         else:
-            return ' '.join([self.idx2word[idx] for idx in p_indices if idx in self.idx2word])
+            return ' '.join(string)
+        
 
     def get_batch(self, dataset, index, truncate_type):
         """
@@ -773,7 +802,7 @@ class Model(object):
                 batch_cost = self.train_model()
                 if verbose: logger.info("epoch %i: batch %i/%i cost: %.9f" % (epoch, minibatch_index+1, n_train_batches, batch_cost))
                 epoch_cost += batch_cost
-                self.set_zero(self.zero_vec)  # Set embeddings[0] to zero vector?
+                # self.set_zero(self.zero_vec)  # Set embeddings[0] to zero vector?
                 bar.update()
             ### we trained the model on all the data once! ###
 
@@ -882,7 +911,7 @@ class Model(object):
                     logger.info('recall@%d = %s' % (k, recall_k[group_size][k]))
         return recall_k
 
-    def retrieve(self, context_set=None, context_embs=None, response_set=None, response_embs=None, k=10, batch_size=100):
+    def retrieve(self, context_set=None, context_embs=None, response_set=None, response_embs=None, k=10, batch_size=100, verbose=True):
         """
         For each context in the context_set, return the k most probable responses from the response_set
         :param context_set: list of contexts strings to query. default=data[train][c]
@@ -891,6 +920,7 @@ class Model(object):
         :param response_embs: list of response embeddings to combine with contexts (used for speedup when doing multiple calls)
         :param k: number of top responses to retrieve
         :param batch_size: number of contexts to consider at a time
+        :param verbose: be berbose
         """
         if response_set is None or len(response_set) == 0:
             response_set = copy.deepcopy(self.data['train']['r'])
@@ -924,7 +954,7 @@ class Model(object):
             ###
             # Compute embedding of each response
             ###
-            logger.info("Computing response embeddings...")
+            if verbose: logger.info("Computing response embeddings...")
             # Pad response set to be divisible by batch_size
             length = len(response_set)
             while len(response_set) % self.batch_size != 0:
@@ -936,7 +966,7 @@ class Model(object):
             for i in xrange(n_batches):
                 response_embs.extend(self.compute_response_embeddings(response_set, i))
                 bar.update()
-            print ""
+            if verbose: print ""
             # Ignore padded embeddings
             response_embs = response_embs[:length]
             response_set = response_set[:length]
@@ -945,7 +975,7 @@ class Model(object):
             ###
             # Compute embedding of each context
             ###
-            logger.info("Computing context embeddings...")
+            if verbose: logger.info("Computing context embeddings...")
             # Pad context set to be divisible by batch_size
             length = len(context_set)
             while len(context_set) % self.batch_size != 0:
@@ -957,7 +987,7 @@ class Model(object):
             for i in xrange(n_batches):
                 context_embs.extend(self.compute_context_embeddings(context_set, i))
                 bar.update()
-            print ""
+            if verbose: print ""
             # Ignore padded embeddings
             context_embs = context_embs[:length]
             context_set = context_set[:length]
@@ -991,18 +1021,18 @@ class Model(object):
 
         for c_idx in range(0, len(context_embs), batch_size):
             end = min(c_idx+batch_size, len(context_embs))
-            logger.info("Retrieving top %d responses for context %d-->%d/%d..." % (k, c_idx+1, end, len(context_embs)))
+            if verbose: logger.info("Retrieving top %d responses for context %d-->%d/%d..." % (k, c_idx+1, end, len(context_embs)))
             probas = get_response_probas(context_embs[c_idx: end], response_embs)  # (batch_size, #of_responses)
             
             # NOTE: the next line is only true when response_set & context_set are well alligned!
-            # logger.info("average proba of true responses: %.9f" % np.mean([probas[i, c_idx+i] for i in range(probas.shape[0])]))
+            # if verbose: logger.info("average proba of true responses: %.9f" % np.mean([probas[i, c_idx+i] for i in range(probas.shape[0])]))
 
             # get top k responses: from less probable to most probable
             top_k_indices = np.argpartition(probas, -k)[:, -k:]  # (batch_size, k)
             for b in range(top_k_indices.shape[0]):  # for each batch of contexts
                 # NOTE: the next 2 lines are only true when response_set & context_set are well alligned!
                 # if c_idx+b in top_k_indices[b]:
-                #     logger.info("  Got true response!")
+                #     if verbose: logger.info("  Got true response!")
             
                 ret_responses = [response_set_str[i] for i in top_k_indices[b]]
                 ret_response_embs = [response_embs[i] for i in top_k_indices[b]]

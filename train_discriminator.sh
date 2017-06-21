@@ -33,16 +33,19 @@ echo "HOME = $HOME"
 
 echo ""
 
+# python2.7 compute_response_encoddings.py -v trained_models/ubuntu-bpe-5k_lstm-200/lstm-200_adam_ubuntu-bpe-5k
+
 python2.7 main.py \
-    --data_path './ubuntu_dataset/v1' \
-    --dataset_fname 'dataset_prepared.pkl' \
-    --W_fname 'W_300_ubuntu_big.pkl' \
+    --data_path './ubuntu_dataset/bpe_v2' \
+    --dataset_fname 'DE_BPE-5k-dataset.pkl' \
+    --W_fname 'W_BPE-5k-rnd.pkl' \
     --save_path '.' \
-    --save_prefix 'lstm-200_adam_ubuntu-v1' \
+    --save_prefix 'bi-lstm-200_adam_ubuntu-bpe-5k' \
     --batch_size 256 \
     --encoder 'lstm' \
     --hidden_size 200 \
-    --is_bidirectional False \
+    --is_bidirectional True \
+    --dropout_p 0. \
     --n_recurrent_layers 1 \
     --patience 10 \
     --n_epochs 100 \
@@ -50,6 +53,6 @@ python2.7 main.py \
     --seed 42 \
     --fine_tune_W True \
     --fine_tune_M True #\
-    #--load_path './trained_models/ubuntu-v1_lstm-200' \
-    #--load_prefix 'lstm-200_adam_ubuntu-v1' \
+    #--load_path './trained_models/ubuntu-v2_lstm-200' \
+    #--load_prefix 'lstm-200_adam_ubuntu-v2' \
     #--resume True
