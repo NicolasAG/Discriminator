@@ -57,6 +57,10 @@ def create_model(de_model, test=False):
         hidden_size=old_args.hidden_size,                       # default 200
         n_recurrent_layers=old_args.n_recurrent_layers,         # default 1
         is_bidirectional=old_args.is_bidirectional,             # default False
+        # dropout_out=old_args.dropout_out,                       # default 0.
+        dropout_out=0.,  # TODO: remove this line and uncomment the line above when model with dropout args will be created
+        # dropout_in=old_args.dropout_in,                         # default 0.
+        dropout_in=0.,  # TODO: remove this line and uncomment the line above when model with dropout args will be created
         # Learning parameters:
         patience=old_args.patience,                             # default 10
         optimizer=old_args.optimizer,                           # default ADAM
@@ -93,12 +97,24 @@ def create_model(de_model, test=False):
     return model
 
 
+def remove_duplicates(alist):
+    uniq = []
+    num_duplicate = 0.
+    for e in alist:
+        if e not in uniq:
+            uniq.append(e)
+        else:
+            num_duplicate += 1.
+    return uniq, num_duplicate
+
+
 def get_context_utterances(model):
     utterances = []
     for c in model.data['train']['c']:
         utt = np.split(c, np.where(np.asarray(c) == model.word2idx['__eot__'])[0]+1)  # list of utterances
-        utterances.extend([u for u in utt if len(u) > 0])
-    logger.debug("+ %d utterances from contexts" % len(utterances))
+        utt, _ = remove_duplicates(utt)
+        utterances.extend([u for u in utt if len(u) > 0 and u not in utterances])
+    logger.debug("+ %d unique utterances from contexts" % len(utterances))
     return utterances
 
 
@@ -132,19 +148,19 @@ def main():
 
     logger.info("Gathering responses to encode...")
     if args.responses_file == "":
-        response_set = copy.deepcopy(model.data['train']['r'])
+        response_set = copy.deepcopy(model.data['train']['r'])  # get responses from model training set
         logger.debug("%d responses" % len(response_set))
-        response_set.extend(get_context_utterances(model))
+        response_set, _ = remove_duplicates(response_set)  # remove duplicates
+        logger.debug("= %d unique responses" % len(response_set))
+        response_set.extend(get_context_utterances(model))  # get utterances seen in every training context
         logger.debug("= %d responses" % len(response_set))
-        uniq = []
+        
         # convert response_set from idx to string!!
         response_set_str = []
         for r_id, r in enumerate(response_set):
             if r_id % 100000 == 0:
                 logger.debug("%d / %d" % (r_id, len(response_set)))
-            if r not in uniq:
-                uniq.append(r)
-                response_set_str.append(model.indices2string(r))
+            response_set_str.append(model.indices2string(r))
     else:
         with open(args.responses_file, 'r') as handle:
             # this has to be strings formated in the same way as the DE model: BPE string if DE model has BPE dictionary, regular string otherwise
