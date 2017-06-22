@@ -114,7 +114,8 @@ def create_model(data, w, word2idx, idx2word, args):
         hidden_size=args.hidden_size,                       # default 200
         n_recurrent_layers=args.n_recurrent_layers,         # default 1
         is_bidirectional=args.is_bidirectional,             # default False
-        dropout_p=args.dropout_p,                           # default 0.
+        dropout_out=args.dropout_out,                       # default 0.
+        dropout_in=args.dropout_in,                         # default 0.
         # Learning parameters:
         patience=args.patience,                             # default 10
         optimizer=args.optimizer,                           # default ADAM
@@ -150,7 +151,8 @@ def main():
     parser.add_argument('--hidden_size', type=int, default=200, help='Hidden size')
     parser.add_argument('--is_bidirectional', type='bool', default=False, help='Bidirectional RNN')
     parser.add_argument('--n_recurrent_layers', type=int, default=1, help='Num recurrent layers')
-    parser.add_argument('--dropout_p', type=float, default=0., help='Dropout probability')
+    parser.add_argument('--dropout_out', type=float, default=0., help='Dropout probability of input layer')
+    parser.add_argument('--dropout_in', type=float, default=0., help='Dropout probability of output layer')
 
     # What to optimize in the network:
     parser.add_argument('--fine_tune_W', type='bool', default=False, help='Whether to fine-tune word embeddings W')

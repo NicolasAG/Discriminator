@@ -34,7 +34,8 @@ class Model(object):
                  hidden_size=100,
                  n_recurrent_layers=1,
                  is_bidirectional=False,
-                 dropout_p=0.,
+                 dropout_out=0.,
+                 dropout_in=0.,
                  # Learning parameters:
                  patience=10,
                  optimizer='adam',
@@ -117,6 +118,8 @@ class Model(object):
             if encoder == 'lstm':
                 logger.info("Building a bidirectional LSTM model")
                 for _ in xrange(n_recurrent_layers):
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_in)
                     l_fwd = lasagne.layers.LSTMLayer(incoming=l_fwd,
                                                      num_units=hidden_size,  # number of hidden units in the layer
                                                      mask_input=l_mask,
@@ -124,9 +127,11 @@ class Model(object):
                                                      backwards=False,   # forward pass
                                                      grad_clipping=10,  # avoid exploding gradients
                                                      learn_init=True)   # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_out)
 
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_in)
                     l_bck = lasagne.layers.LSTMLayer(incoming=l_bck,
                                                      num_units=hidden_size,  # number of hidden units in the layer
                                                      mask_input=l_mask,
@@ -134,31 +139,37 @@ class Model(object):
                                                      backwards=True,    # backward pass
                                                      grad_clipping=10,  # avoid exploding gradients
                                                      learn_init=True)   # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_out)
             elif encoder == 'gru':
                 logger.info("Building a bidirectional GRU model")
                 for _ in xrange(n_recurrent_layers):
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_in)
                     l_fwd = lasagne.layers.GRULayer(incoming=l_fwd,
                                                     num_units=hidden_size,  # number of hidden units in the layer
                                                     mask_input=l_mask,
                                                     backwards=False,   # forward pass
                                                     grad_clipping=10,  # avoid exploding gradients
                                                     learn_init=True)   # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_out)
 
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_in)
                     l_bck = lasagne.layers.GRULayer(incoming=l_bck,
                                                     num_units=hidden_size,  # Number of hidden units in the layer
                                                     mask_input=l_mask,
                                                     backwards=True,    # backward pass
                                                     grad_clipping=10,  # avoid exploding gradients
                                                     learn_init=True)   # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_out)
             elif encoder == 'rnn':
                 logger.info("Building a bidirectional RNN model")
                 for _ in xrange(n_recurrent_layers):
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_in)
                     l_fwd = lasagne.layers.RecurrentLayer(incoming=l_fwd,
                                                           num_units=hidden_size,  # number of hidden units in the layer
                                                           mask_input=l_mask,
@@ -168,9 +179,11 @@ class Model(object):
                                                           backwards=False,   # forward pass
                                                           grad_clipping=10,  # avoid exploding gradients
                                                           learn_init=True)   # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_fwd = lasagne.layers.DropoutLayer(incoming=l_fwd, p=dropout_out)
 
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_in)
                     l_bck = lasagne.layers.RecurrentLayer(incoming=l_bck,
                                                           num_units=hidden_size,  # number of hidden units in the layer
                                                           mask_input=l_mask,
@@ -180,8 +193,8 @@ class Model(object):
                                                           backwards=True,    # backward pass
                                                           grad_clipping=10,  # avoid exploding gradients
                                                           learn_init=True)   # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_bck = lasagne.layers.DropoutLayer(incoming=l_bck, p=dropout_out)
             else:
                 raise ValueError("Unknown encoder %s", encoder)
             # concatenate forward and backward layers
@@ -192,27 +205,33 @@ class Model(object):
             if encoder == 'lstm':
                 logger.info("Building an LSTM model")
                 for _ in xrange(n_recurrent_layers):
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_in)
                     l_recurrent = lasagne.layers.LSTMLayer(incoming=l_recurrent,
                                                            num_units=hidden_size,  # number of hidden units in the layer
                                                            mask_input=l_mask,
                                                            forgetgate=lasagne.layers.Gate(b=lasagne.init.Constant(2.0)),  # init forget gate bias to 2
                                                            grad_clipping=10,       # avoid exploding gradients
                                                            learn_init=True)        # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_out)
             elif encoder == 'gru':
                 logger.info("Building a GRU model")
                 for _ in xrange(n_recurrent_layers):
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_in)
                     l_recurrent = lasagne.layers.GRULayer(incoming=l_recurrent,
                                                           num_units=hidden_size,  # number of hidden units in the layer
                                                           mask_input=l_mask,
                                                           grad_clipping=10,       # avoid exploding gradients
                                                           learn_init=True)        # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_out)
             elif encoder == 'rnn':
                 logger.info("Building an RNN model")
                 for _ in xrange(n_recurrent_layers):
+                    if dropout_in > 1e-9 and dropout_in < 1.-1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_in)
                     l_recurrent = lasagne.layers.RecurrentLayer(incoming = l_recurrent,
                                                                 num_units = hidden_size,  # number of hidden units in the layer
                                                                 mask_input = l_mask,
@@ -221,8 +240,8 @@ class Model(object):
                                                                 W_hid_to_hid = lasagne.init.Orthogonal(),    # Initializer for hidden-to-hidden weight matrix
                                                                 grad_clipping = 10,  # avoid exploding gradients
                                                                 learn_init = True)   # initial hidden values are learned
-                    if dropout_p > 1e-9:
-                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_p)
+                    if dropout_out > 1e-9 and dropout_out < 1.-1e-9:
+                        l_recurrent = lasagne.layers.DropoutLayer(incoming=l_recurrent, p=dropout_out)
             else:
                 raise ValueError("Unknown encoder %s", encoder)
 
