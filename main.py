@@ -231,7 +231,7 @@ def main():
     logger.info("W.shape: %s" % (W.shape,))
 
     logger.info("Number of training examples: %d" % len(train_data['c']))
-    if len(train_data['c']) % batch_size > 0:
+    if len(train_data['c']) % args.batch_size > 0:
         for key in ['c', 'r', 'y', 'id']:
             train_data[key] = pad_to_batch_size(train_data[key], args.batch_size)
         logger.info("(padded to batch size) New number of training examples: %d" % len(train_data['c']))
