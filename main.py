@@ -134,6 +134,12 @@ def create_model(data, w, word2idx, idx2word, args):
         act_penalty=args.act_penalty                        # default 500
     )
 
+def pad_to_batch_size(x, batch_size):
+    to_pad = len(x) % batch_size
+    if to_pad > 0:
+        x += x[:batch_size-to_pad]
+    return x
+
 def str2bool(v):
     return v.lower() in ("yes", "true", "t", "1")
 
@@ -147,6 +153,7 @@ def main():
     parser.add_argument('--k', type=int, default=4, help='Size of k in NTN')
 
     # Structure of Network:
+    parser.add_argument('--emb_size', type=int, default=300, help="bpe token embedding size")
     parser.add_argument('--encoder', type=str, default='rnn', help='Type of encoding RNN units: rnn, gru, lstm')
     parser.add_argument('--hidden_size', type=int, default=200, help='Hidden size')
     parser.add_argument('--is_bidirectional', type='bool', default=False, help='Bidirectional RNN')
@@ -179,7 +186,7 @@ def main():
     # Loading data parameters:
     parser.add_argument('--data_path', type=str, default='.', help='Path of the data to load')
     parser.add_argument('--dataset_fname', type=str, default='dataset.pkl', help='Dataset filename')
-    parser.add_argument('--W_fname', type=str, default='W.pkl', help='Word embeddings filename')
+    parser.add_argument('--dict_fname', type=str, default='W.pkl', help='Word dictionary filename')
     parser.add_argument('--train_examples', type=int, required=False, help='Number of training examples to keep')
     parser.add_argument('--sort_by_len', type='bool', default=False, help='Whether to sort examples by context length')
 
@@ -216,11 +223,18 @@ def main():
     with open('%s/%s' % (args.data_path, args.dataset_fname), 'rb') as handle:
         train_data, val_data, test_data = cPickle.load(handle)
     # W is the word embedding matrix and word2idx, idx2word are dictionaries
-    with open('%s/%s' % (args.data_path, args.W_fname), 'rb') as handle:
-        W, word2idx, idx2word = cPickle.load(handle)
-    logger.info("W.shape: %s" % (W.shape,))  # (5092,300) = word embedding for each vocab word
+    with open('%s/%s' % (args.data_path, args.dict_fname), 'rb') as handle:
+        word2idx, idx2word = cPickle.load(handle)
+    W = np.zeros(shape=(len(word2idx), args.emb_size))
+    for idx in idx2word:
+        W[idx] = np.random.uniform(-0.25, 0.25, args.emb_size)
+    logger.info("W.shape: %s" % (W.shape,))
 
     logger.info("Number of training examples: %d" % len(train_data['c']))
+    if len(train_data['c']) % batch_size > 0:
+        for key in ['c', 'r', 'y', 'id']:
+            train_data[key] = pad_to_batch_size(train_data[key], args.batch_size)
+        logger.info("(padded to batch size) New number of training examples: %d" % len(train_data['c']))
     logger.info("Number of validation examples: %d" % len(val_data['c']))
     logger.info("Number of test examples: %d" % len(test_data['c']))
 
