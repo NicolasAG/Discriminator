@@ -586,7 +586,7 @@ class Model(object):
                 try:
                     for idx in xrange(0, len(self.data[scope]['c']), test_size):
                         # If size of data not divisible by `test_size`, ignore the last few examples
-                        if self.data[scope]['c'][idx+test_size-1] >= len(self.data[scope]['c']):
+                        if idx+test_size-1 >= len(self.data[scope]['c']):
                             break
                         # Make sure that contexts are the same `test_size` times in a row
                         for t in range(test_size)[1:]:
