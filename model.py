@@ -566,9 +566,22 @@ class Model(object):
         performances = []
         for model_name, data in self.data_by_models[scope].iteritems():
             logger.info("evaluating %s" % model_name)
-            n_batches = len(data['y']) // self.batch_size
+            # Pad data set to be divisible by batch_size
+            length = len(data['y'])
+            to_pad = self.batch_size - (length % self.batch_size)
+            for pad_idx in range(to_pad):
+                data['c'].append(data['c'][pad_idx])
+                data['r'].append(data['r'][pad_idx])
+                data['y'].append(data['y'][pad_idx])
             # Compute performance:
+            n_batches = len(data['y']) // self.batch_size
             losses = [self.compute_loss(data, i) for i in xrange(n_batches)]  # number of wrong predictions for each batch
+            # ignore extra losses from padding
+            losses = losses[:length]
+            data['c'] = data['c'][:length]
+            data['r'] = data['r'][:length]
+            data['y'] = data['y'][:length]
+
             perf = 1 - np.sum(losses) / len(data['y'])  # 1 - total number of errors / total number of examples
             performances.append(perf)
             logger.info('%s_perf: %.9f%%' % (scope, perf*100))
@@ -581,31 +594,48 @@ class Model(object):
                 logger.info("")
                 logger.debug("verifying data format for recalls...")
                 # WARNING: assumes data[scope] has been created like so: [1 true response, 9 false, 1 true, 9 false, ...]
-                # -> no model responses, only true vs random, context after context: 1 true vs 9 flase, data not shuffled!
+                # -> no model responses, only 1 true vs 9 random, data not shuffled!
                 test_size = 10
                 try:
                     for idx in xrange(0, len(self.data[scope]['c']), test_size):
                         # If size of data not divisible by `test_size`, ignore the last few examples
                         if idx+test_size-1 >= len(self.data[scope]['c']):
                             break
-                        # Make sure that contexts are the same `test_size` times in a row
-                        for t in range(test_size)[1:]:
-                            assert self.data[scope]['c'][idx] == self.data[scope]['c'][idx+t], "contexts don't match! has data been shuffled?"
-                        # Make sure that true response is always the first and remaining 9 are false
+                        # Make sure that true response is always the first
                         assert self.data[scope]['y'][idx] == 1, "data[%s][y][%d]=%s != 1" % (scope, idx, self.data[scope]['y'][idx])
-                        for t in range(test_size)[1:]:
-                            assert self.data[scope]['y'][idx+t] == 0, "data[%s][y][%d]=%s != 0" % (scope, idx+t, self.data[scope]['y'][idx+t])
-                        # Make sure that true response is always the first and remaining 9 are random
                         assert self.data[scope]['id'][idx] == 'true', "data[%s][id][%d]=%s != true" % (scope, idx, self.data[scope]['id'][idx])
                         for t in range(test_size)[1:]:
+                            # Make sure that contexts are the same `test_size` times in a row
+                            assert self.data[scope]['c'][idx] == self.data[scope]['c'][idx+t], "contexts don't match! has data been shuffled?"
+                            # Make sure that remaining 9 responses are false random
+                            assert self.data[scope]['y'][idx+t] == 0, "data[%s][y][%d]=%s != 0" % (scope, idx+t, self.data[scope]['y'][idx+t])
                             assert self.data[scope]['id'][idx+t] == 'rand', "data[%s][id][%d]=%s != rand" % (scope, idx+t, self.data[scope]['id'][idx+t])
                 except AssertionError as e:
                     logger.error("AssertionError: %s" % e)
                     logger.error("Cannot compute recalls")
                     return performances, None
                 
+                # Pad data set to be divisible by batch_size
+                length = len(self.data[scope]['y'])
+                to_pad = self.batch_size - (length % self.batch_size)
+                if to_pad >= test_size:  # padding less than test_size won't change recalls since truncated in compute_recall_ks
+                    for pad_idx in range(to_pad):
+                        self.data[scope]['c'].append(self.data[scope]['c'][pad_idx])
+                        self.data[scope]['r'].append(self.data[scope]['r'][pad_idx])
+                        self.data[scope]['y'].append(self.data[scope]['y'][pad_idx])
+                        self.data[scope]['id'].append(self.data[scope]['id'][pad_idx])
+                # compute probabilities
                 n_batches = len(self.data[scope]['y']) // self.batch_size
+                logger.debug("ok. computing %d probabilities now..." % (n_batches*self.batch_size))
                 probas = np.concatenate([self.compute_probas(self.data[scope], i) for i in xrange(n_batches)])
+                # if padded, ignore extra probabilities
+                if len(probas) > length:
+                    probas = probas[:length]
+                    self.data[scope]['c'] = self.data[scope]['c'][:length]
+                    self.data[scope]['r'] = self.data[scope]['r'][:length]
+                    self.data[scope]['y'] = self.data[scope]['y'][:length]
+                    self.data[scope]['id'] = self.data[scope]['id'][:length]
+                # compute recalls
                 recall_k = self.compute_recall_ks(probas)
                 return performances, recall_k
 
@@ -981,10 +1011,10 @@ class Model(object):
             # Compute embeddings
             n_batches = len(response_set) // self.batch_size
             response_embs = []  # list of response embeddings
-            bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
+            if n_batches > 100: bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
             for i in xrange(n_batches):
                 response_embs.extend(self.compute_response_embeddings(response_set, i))
-                bar.update()
+                if n_batches > 100: bar.update()
             if verbose: print ""
             # Ignore padded embeddings
             response_embs = response_embs[:length]
@@ -1002,10 +1032,10 @@ class Model(object):
             # Compute embeddings
             n_batches = len(context_set) // self.batch_size
             context_embs = []  # list of context embeddings
-            bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
+            if n_batches > 100: bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
             for i in xrange(n_batches):
                 context_embs.extend(self.compute_context_embeddings(context_set, i))
-                bar.update()
+                if n_batches > 100: bar.update()
             if verbose: print ""
             # Ignore padded embeddings
             context_embs = context_embs[:length]
