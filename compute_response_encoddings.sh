@@ -33,5 +33,5 @@ echo "HOME = $HOME"
 
 echo ""
 
-python2.7 compute_response_encoddings.py -v trained_models/ubuntu-bpe-5k_lstm-200/lstm-200_adam_ubuntu-bpe-5k
+python2.7 compute_response_encoddings.py -v trained_models/ubuntu-bpe-5k_gru-200/gru-200_adam_ubuntu-bpe-5k
 

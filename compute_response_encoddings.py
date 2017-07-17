@@ -97,23 +97,41 @@ def create_model(de_model, test=False):
     return model
 
 
-def remove_duplicates(alist):
-    uniq = []
-    num_duplicate = 0.
-    for e in alist:
-        if e not in uniq:
-            uniq.append(e)
-        else:
-            num_duplicate += 1.
-    return uniq, num_duplicate
+def unique(alist, verbose=False):
+    """
+    Remove duplicate 'rows' from a 2D numpy array
+    Remove duplicated utterances
+    :return: array of unique utterances
+    """
+    # pad with -1 so that each utterance is of the same length
+    if verbose: logger.debug("  pading with -1 so that each utterance is of the same length...")
+    max_length = max([len(u) for u in alist])
+    alist = np.asarray( [np.pad(u, (0, max_length-len(u)), 'constant', constant_values=(-1,-1)) for u in alist] )
+    # remove duplicates
+    if verbose: logger.debug("  removing duplicates...")
+    order = np.lexsort(alist.T)
+    alist = alist[order]
+    diff = np.diff(alist, axis=0)
+    ui = np.ones(len(alist), 'bool')
+    ui[1:] = (diff != 0).any(axis=1) 
+    alist = alist[ui]
+    # remove the padded -1's from the utterances
+    if verbose: logger.debug("  remove padded -1's from utterances...")
+    stop = [np.where(u == -1)[0] for u in alist]
+    stop = [end_idx[0] if len(end_idx)>0 else max_length for end_idx in stop]
+    return [alist[idx, :end] for idx, end in enumerate(stop)]
 
 
 def get_context_utterances(model):
     utterances = []
-    for c in model.data['train']['c']:
+    for c_idx, c in enumerate(model.data['train']['c']):
+        if c_idx % 100000 == 0:
+            logger.debug("get context utterances progress: %d / %d" % (c_idx, len(model.data['train']['c'])))
         utt = np.split(c, np.where(np.asarray(c) == model.word2idx['__eot__'])[0]+1)  # list of utterances
-        utt, _ = remove_duplicates(utt)
-        utterances.extend([u for u in utt if len(u) > 0 and u not in utterances])
+        utt = unique(utt)
+        utterances.extend([u for u in utt if len(u) > 0])
+    logger.debug(" %d utterances" % len(utterances))
+    utterances = unique(utterances, verbose=True)
     logger.debug("+ %d unique utterances from contexts" % len(utterances))
     return utterances
 
@@ -150,7 +168,7 @@ def main():
     if args.responses_file == "":
         response_set = copy.deepcopy(model.data['train']['r'])  # get responses from model training set
         logger.debug("%d responses" % len(response_set))
-        response_set, _ = remove_duplicates(response_set)  # remove duplicates
+        response_set = unique(response_set, verbose=True)  # remove duplicates
         logger.debug("= %d unique responses" % len(response_set))
         response_set.extend(get_context_utterances(model))  # get utterances seen in every training context
         logger.debug("= %d responses" % len(response_set))
@@ -159,7 +177,7 @@ def main():
         response_set_str = []
         for r_id, r in enumerate(response_set):
             if r_id % 100000 == 0:
-                logger.debug("%d / %d" % (r_id, len(response_set)))
+                logger.debug("index to string conversion progress: %d / %d" % (r_id, len(response_set)))
             response_set_str.append(model.indices2string(r))
     else:
         with open(args.responses_file, 'r') as handle:
