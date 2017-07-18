@@ -350,29 +350,29 @@ def main():
         model.test()
 
     # If retrieving responses from training set
-    elif args.retrieve:  # TODO: GET CONTEXT/RESPONSE STRINGS!!
-        logger.info("")
-        logger.info("Loading original data from %s/words/Training.dialogues.pkl..." % args.data_path)
-        with open('%s/words/Training.dialogues.pkl' % args.data_path, 'rb') as handle:
-            train_conversations = cPickle.load(handle)
-        train_contexts, train_responses = process_ubuntu_dialogues(train_conversations, word2idx)
-        logger.info("number of contexts: %d" % len(train_contexts))
-        logger.info("number of responses: %d" % len(train_responses))
+    elif args.retrieve:
+        logger.info("Need to think about that...")
+        # logger.info("Loading original data from %s/Training.dialogues.pkl..." % args.data_path)
+        # with open('%s/Training.dialogues.pkl' % args.data_path, 'rb') as handle:
+        #     train_conversations = cPickle.load(handle)
+        # train_contexts, train_responses = process_ubuntu_dialogues(train_conversations, word2idx)
+        # logger.info("number of contexts: %d" % len(train_contexts))
+        # logger.info("number of responses: %d" % len(train_responses))
 
-        # Convert idx to string
-        train_contexts_str = []
-        for c in train_contexts:
-            train_contexts_str.append(indices2string(c, idx2word))
-        train_responses_str = []
-        for r in train_responses:
-            train_responses_str.append(indices2string(r, idx2word))
+        # # Convert idx to string
+        # train_contexts_str = []
+        # for c in train_contexts:
+        #     train_contexts_str.append(indices2string(c, idx2word))
+        # train_responses_str = []
+        # for r in train_responses:
+        #     train_responses_str.append(indices2string(r, idx2word))
 
-        logger.info("")
-        logger.info("Retrieving responses...")
-        retrieved_responses = model.retrieve(context_set=train_contexts_str, response_set=train_responses_str, k=10, batch_size=1000)
-        with open("%s/%s_Train_retrieved_responses.pkl" % (args.save_path, args.save_prefix), 'wb') as handle:
-            cPickle.dump(retrieved_responses, handle, protocol=cPickle.HIGHEST_PROTOCOL)
-        logger.info('saved.')
+        # logger.info("")
+        # logger.info("Retrieving responses...")
+        # retrieved_responses = model.retrieve(context_set=train_contexts_str, response_set=train_responses_str, k=10, batch_size=1000)
+        # with open("%s/%s_Train_retrieved_responses.pkl" % (args.save_path, args.save_prefix), 'wb') as handle:
+        #     cPickle.dump(retrieved_responses, handle, protocol=cPickle.HIGHEST_PROTOCOL)
+        # logger.info('saved.')
 
     # If training the model
     else:
