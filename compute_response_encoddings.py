@@ -131,15 +131,15 @@ def unique(alist, verbose=False):
     return [alist[idx, :end] for idx, end in enumerate(stop)]'''
 
 
-def get_context_utterances(model):
+def get_context_utterances(model, verbose=False):
     utterances = []
     for c_idx, c in enumerate(model.data['train']['c']):
-        if c_idx % 100000 == 0:
+        if verbose and c_idx % 100000 == 0:
             logger.debug("get context utterances progress: %d / %d" % (c_idx, len(model.data['train']['c'])))
         utt = np.split(c, np.where(np.asarray(c) == model.word2idx[EOT_TOKEN])[0]+1)  # list of utterances
-        utt = unique(utt)
+        utt = unique(utt, verbose=False)
         utterances.extend([u for u in utt if len(u) > 0])
-    logger.debug(" %d utterances" % len(utterances))
+    logger.debug(" %d utterances from contexts" % len(utterances))
     utterances = unique(utterances, verbose=True)
     logger.debug("+ %d unique utterances from contexts" % len(utterances))
     return utterances
@@ -177,15 +177,19 @@ def main():
     if args.responses_file == "":
         response_set = copy.deepcopy(model.data['train']['r'])  # get responses from model training set
         logger.debug("%d responses" % len(response_set))
-        response_set = unique(response_set, verbose=True)  # remove duplicates
+        response_set = unique(response_set, verbose=args.verbose)  # remove duplicates
         logger.debug("= %d unique responses" % len(response_set))
-        response_set.extend(get_context_utterances(model))  # get utterances seen in every training context
+        response_set.extend(get_context_utterances(model, args.verbose))  # get utterances seen in every training context
         logger.debug("= %d responses" % len(response_set))
+        logger.debug("remove overlap between context utterances & responses")
+        response_set = unique(response_set, verbose=args.verbose)
+        logger.debug("final count: %d" % len(response_set))
+        
         
         # convert response_set from idx to string
         response_set_str = []
         for r_id, r in enumerate(response_set):
-            if r_id % 100000 == 0:
+            if args.verbose and r_id % 100000 == 0:
                 logger.debug("index to string conversion progress: %d / %d" % (r_id, len(response_set)))
             response_set_str.append(model.indices2string(r))
     else:
@@ -194,7 +198,7 @@ def main():
             response_set_str = handle.readlines()
             response_set = []
             for r_id, r in enumerate(response_set_str):
-                if r_id % 100000 == 0:
+                if args.verbose and r_id % 100000 == 0:
                     logger.debug("string to idx conversion progress: %d / %d" % (r_id, len(response_set_str)))
                 response_set.append(model.string2indices(r))
 
@@ -210,7 +214,6 @@ def main():
     for i in xrange(n_batches):
         response_embs.extend(model.compute_response_embeddings(response_set, i))
         if n_batches > 100: bar.update()
-    if verbose: print ""
     # Ignore padded embeddings
     response_embs = response_embs[:length]
     response_set = response_set[:length]
