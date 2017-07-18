@@ -27,7 +27,7 @@ def create_model(de_model, test=False):
     # start with random word embeddings for now, will set to the best ones after creating the model
     w_emb = np.zeros(shape=(len(word2idx), old_args.emb_size))
     for idx in idx2word:
-        W[idx] = np.random.uniform(-0.25, 0.25, args.emb_size)
+        w_emb[idx] = np.random.uniform(-0.25, 0.25, args.emb_size)
     logger.info("w_emb.shape: %s" % (w_emb.shape,))  # (5092,300) = word embedding for each vocab word
 
     logger.info("Number of training examples: %d" % len(train_data['c']))
