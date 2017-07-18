@@ -4,9 +4,12 @@ import numpy as np
 import logging
 import copy
 import sys
+import pyprind
 from model import Model as DE_Model
 
 logger = logging.getLogger(__name__)
+
+EOT_TOKEN = '</s>'
 
 
 def create_model(de_model, test=False):
@@ -18,9 +21,13 @@ def create_model(de_model, test=False):
     # data sets are dictionaries containing contexts, responses, flag
     with open('./%s/%s' % (old_args.data_path, old_args.dataset_fname), 'rb') as handle:
         train_data, val_data, test_data = pkl.load(handle)
-    # w_emb is the word embedding matrix and word2idx, idx2word are dictionaries
-    with open('./%s/%s' % (old_args.data_path, old_args.W_fname), 'rb') as handle:
-        w_emb, word2idx, idx2word = pkl.load(handle)
+    # word2idx, idx2word are dictionaries
+    with open('./%s/%s' % (old_args.data_path, old_args.dict_fname), 'rb') as handle:
+        word2idx, idx2word = pkl.load(handle)
+    # start with random word embeddings for now, will set to the best ones after creating the model
+    w_emb = np.zeros(shape=(len(word2idx), old_args.emb_size))
+    for idx in idx2word:
+        W[idx] = np.random.uniform(-0.25, 0.25, args.emb_size)
     logger.info("w_emb.shape: %s" % (w_emb.shape,))  # (5092,300) = word embedding for each vocab word
 
     logger.info("Number of training examples: %d" % len(train_data['c']))
@@ -30,9 +37,10 @@ def create_model(de_model, test=False):
     # Cap the number of training examples
     if old_args.train_examples:
         num_train_examples = old_args.train_examples + old_args.train_examples % old_args.batch_size
-        train_data['c'] = train_data['c'][:500]
-        train_data['r'] = train_data['r'][:500]
-        train_data['y'] = train_data['y'][:500]
+        train_data['c'] = train_data['c'][:num_train_examples]
+        train_data['r'] = train_data['r'][:num_train_examples]
+        train_data['y'] = train_data['y'][:num_train_examples]
+        train_data['id'] = train_data['id'][:num_train_examples]
         logger.info('New number of training examples: %d' % len(train_data['c']))
 
     # sort the training data by context length
@@ -57,10 +65,8 @@ def create_model(de_model, test=False):
         hidden_size=old_args.hidden_size,                       # default 200
         n_recurrent_layers=old_args.n_recurrent_layers,         # default 1
         is_bidirectional=old_args.is_bidirectional,             # default False
-        # dropout_out=old_args.dropout_out,                       # default 0.
-        dropout_out=0.,  # TODO: remove this line and uncomment the line above when model with dropout args will be created
-        # dropout_in=old_args.dropout_in,                         # default 0.
-        dropout_in=0.,  # TODO: remove this line and uncomment the line above when model with dropout args will be created
+        dropout_out=old_args.dropout_out,                       # default 0.
+        dropout_in=old_args.dropout_in,                         # default 0.
         # Learning parameters:
         patience=old_args.patience,                             # default 10
         optimizer=old_args.optimizer,                           # default ADAM
@@ -103,7 +109,10 @@ def unique(alist, verbose=False):
     Remove duplicated utterances
     :return: array of unique utterances
     """
-    # pad with -1 so that each utterance is of the same length
+    if verbose: logger.debug("  removing duplicates...")
+    unique = set(tuple(e) for e in alist)  # remove duplicates by converting to tuples
+    return [list(e) for e in unique]  # convert each element back to an array
+    '''# pad with -1 so that each utterance is of the same length
     if verbose: logger.debug("  pading with -1 so that each utterance is of the same length...")
     max_length = max([len(u) for u in alist])
     alist = np.asarray( [np.pad(u, (0, max_length-len(u)), 'constant', constant_values=(-1,-1)) for u in alist] )
@@ -119,7 +128,7 @@ def unique(alist, verbose=False):
     if verbose: logger.debug("  remove padded -1's from utterances...")
     stop = [np.where(u == -1)[0] for u in alist]
     stop = [end_idx[0] if len(end_idx)>0 else max_length for end_idx in stop]
-    return [alist[idx, :end] for idx, end in enumerate(stop)]
+    return [alist[idx, :end] for idx, end in enumerate(stop)]'''
 
 
 def get_context_utterances(model):
@@ -127,7 +136,7 @@ def get_context_utterances(model):
     for c_idx, c in enumerate(model.data['train']['c']):
         if c_idx % 100000 == 0:
             logger.debug("get context utterances progress: %d / %d" % (c_idx, len(model.data['train']['c'])))
-        utt = np.split(c, np.where(np.asarray(c) == model.word2idx['__eot__'])[0]+1)  # list of utterances
+        utt = np.split(c, np.where(np.asarray(c) == model.word2idx[EOT_TOKEN])[0]+1)  # list of utterances
         utt = unique(utt)
         utterances.extend([u for u in utt if len(u) > 0])
     logger.debug(" %d utterances" % len(utterances))
@@ -173,7 +182,7 @@ def main():
         response_set.extend(get_context_utterances(model))  # get utterances seen in every training context
         logger.debug("= %d responses" % len(response_set))
         
-        # convert response_set from idx to string!!
+        # convert response_set from idx to string
         response_set_str = []
         for r_id, r in enumerate(response_set):
             if r_id % 100000 == 0:
@@ -183,13 +192,38 @@ def main():
         with open(args.responses_file, 'r') as handle:
             # this has to be strings formated in the same way as the DE model: BPE string if DE model has BPE dictionary, regular string otherwise
             response_set_str = handle.readlines()
+            response_set = []
+            for r_id, r in enumerate(response_set_str):
+                if r_id % 100000 == 0:
+                    logger.debug("string to idx conversion progress: %d / %d" % (r_id, len(response_set_str)))
+                response_set.append(model.string2indices(r))
 
-    logger.info("Computing response encodding of %d unique responses..." % len(response_set_str))
-    # Create a dumb context, just to compute the response embeddings
-    retrieved_data = model.retrieve(
-        context_set=["**unknown**"], response_set=response_set_str,
-        k=1, batch_size=1, verbose=args.verbose
-    )
+    logger.info("Computing response encodding of %d unique responses..." % len(response_set))
+    # Pad response set to be divisible by batch_size
+    length = len(response_set)
+    while len(response_set) % model.batch_size != 0:
+        response_set.append(response_set[0])
+    # Compute embeddings
+    n_batches = len(response_set) // model.batch_size
+    response_embs = []  # list of response embeddings
+    if n_batches > 100: bar = pyprind.ProgBar(n_batches, monitor=True, stream=sys.stdout)  # show a progression bar on the screen
+    for i in xrange(n_batches):
+        response_embs.extend(model.compute_response_embeddings(response_set, i))
+        if n_batches > 100: bar.update()
+    if verbose: print ""
+    # Ignore padded embeddings
+    response_embs = response_embs[:length]
+    response_set = response_set[:length]
+    assert len(response_set_str) == len(response_set) == len(response_embs)
+
+    retrieved_data = {
+        'c': [], 'c_embs': [],
+        'r': response_set_str,
+        'r_embs': response_embs,
+        'r_retrieved': [],
+        'r_retrieved_embs': [],
+        'proba_retrieved': []
+    }
     logger.info("Got %d encoddings" % len(retrieved_data['r_embs']))
 
     logger.info("Saving retrieved information to %s_r-encs.pkl..." % args.de_model)
