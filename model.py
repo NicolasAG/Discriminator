@@ -971,12 +971,14 @@ class Model(object):
         :param batch_size: number of contexts to consider at a time
         :param verbose: be berbose
         """
+        # response_set not provided, use the training ones, and create a str version
         if response_set is None or len(response_set) == 0:
             response_set = copy.deepcopy(self.data['train']['r'])
             # convert response_set from idx to string!!
             response_set_str = []
             for r in response_set:
                 response_set_str.append(self.indices2string(r))
+        # response_set provided, use those strings and create an idx version
         else:
             response_set_str = copy.deepcopy(response_set)
             if response_embs is None or len(response_embs) == 0:
@@ -985,12 +987,14 @@ class Model(object):
                 for r in response_set_str:
                     response_set.append(self.string2indices(r))
 
+        # context_set not provided, use the training ones, and create a str version
         if context_set is None or len(context_set) == 0:
             context_set = copy.deepcopy(self.data['train']['c'])
             # convert context_set from idx to string!!
             context_set_str = []
             for c in context_set:
                 context_set_str.append(self.indices2string(c))
+        # context_set provided, use those strings and create an idx version
         else:
             context_set_str = copy.deepcopy(context_set)
             if context_embs is None or len(context_embs) == 0:
@@ -1044,7 +1048,7 @@ class Model(object):
         retrieved_data = {
             'c': context_set_str,  # each context
             'c_embs': context_embs,
-            'r': response_set_str,  # true response for each context
+            'r': response_set_str,  # responses to consider
             'r_embs': response_embs,
             'r_retrieved': [],  # list of k responses for each context
             'r_retrieved_embs': [],
