@@ -210,10 +210,11 @@ def main():
 
     args = parser.parse_args()
     logger.info('args: %s' % args)
-    # Saving args to file
-    with open("%s/%s_args.pkl" % (args.save_path, args.save_prefix), 'wb') as handle:
-        cPickle.dump(args, handle, protocol=cPickle.HIGHEST_PROTOCOL)
-    logger.info('saved.')
+    if not args.resume and not args.test and not args.retrieve:
+        # Saving args to file
+        with open("%s/%s_args.pkl" % (args.save_path, args.save_prefix), 'wb') as handle:
+            cPickle.dump(args, handle, protocol=cPickle.HIGHEST_PROTOCOL)
+        logger.info('saved.')
 
     np.random.seed(args.seed)
 
@@ -260,8 +261,8 @@ def main():
             with open('%s/%s_model.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
                 model = cPickle.load(handle)
                 model.data = data  # in cases when we want to test or resume with new data
-        except cPickle.UnpicklingError:
-            logger.error("cPickle.UnpicklingError: couldn't load the model")
+        except Exception as e:
+            logger.error("%s\n ERROR: couldn't load the model" % e)
             # Loading old arguments
             with open('%s/%s_args.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
                 old_args = cPickle.load(handle)
@@ -285,7 +286,7 @@ def main():
                 em = cPickle.load(handle)
                 model.embeddings.set_value(em)
 
-            logger.info("Testing the model...")
+            '''logger.info("Testing the model...")
             model.test()
             logger.info("")
             logger.info("Does the performance look good? If so, will save the model. (y/n): ")
@@ -296,7 +297,7 @@ def main():
                     cPickle.dump(model, handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 logger.info("Saved.")
             else:
-                logger.info("Not saved.")
+                logger.info("Not saved.")'''
 
         with open('%s/%s_timings.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
             timings = cPickle.load(handle)
