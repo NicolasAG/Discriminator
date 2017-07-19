@@ -5,6 +5,8 @@ import logging
 import copy
 import sys
 import pyprind
+import theano
+import lasagne
 from model import Model as DE_Model
 
 logger = logging.getLogger(__name__)
@@ -27,7 +29,7 @@ def create_model(de_model, test=False):
     # start with random word embeddings for now, will set to the best ones after creating the model
     w_emb = np.zeros(shape=(len(word2idx), old_args.emb_size))
     for idx in idx2word:
-        w_emb[idx] = np.random.uniform(-0.25, 0.25, args.emb_size)
+        w_emb[idx] = np.random.uniform(-0.25, 0.25, old_args.emb_size)
     logger.info("w_emb.shape: %s" % (w_emb.shape,))  # (5092,300) = word embedding for each vocab word
 
     logger.info("Number of training examples: %d" % len(train_data['c']))
@@ -131,17 +133,17 @@ def unique(alist, verbose=False):
     return [alist[idx, :end] for idx, end in enumerate(stop)]'''
 
 
-def get_context_utterances(model, verbose=False):
+def get_utterances(model, dialogues, verbose=False):
     utterances = []
-    for c_idx, c in enumerate(model.data['train']['c']):
+    for c_idx, c in enumerate(dialogues):
         if verbose and c_idx % 100000 == 0:
-            logger.debug("get context utterances progress: %d / %d" % (c_idx, len(model.data['train']['c'])))
+            logger.debug("get utterances progress: %d / %d" % (c_idx, len(dialogues)))
         utt = np.split(c, np.where(np.asarray(c) == model.word2idx[EOT_TOKEN])[0]+1)  # list of utterances
         utt = unique(utt, verbose=False)
         utterances.extend([u for u in utt if len(u) > 0])
-    logger.debug(" %d utterances from contexts" % len(utterances))
+    logger.debug(" %d utterances from dialogues" % len(utterances))
     utterances = unique(utterances, verbose=True)
-    logger.debug("+ %d unique utterances from contexts" % len(utterances))
+    logger.debug("+ %d unique utterances from dialogues" % len(utterances))
     return utterances
 
 
@@ -175,11 +177,10 @@ def main():
 
     logger.info("Gathering responses to encode...")
     if args.responses_file == "":
-        response_set = copy.deepcopy(model.data['train']['r'])  # get responses from model training set
-        logger.debug("%d responses" % len(response_set))
-        response_set = unique(response_set, verbose=args.verbose)  # remove duplicates
-        logger.debug("= %d unique responses" % len(response_set))
-        response_set.extend(get_context_utterances(model, args.verbose))  # get utterances seen in every training context
+        logger.debug("get utterances from responses in the training set")
+        response_set = get_utterances(model, model.data['train']['r'], args.verbose)  # get responses from model training set
+        logger.debug("get utterances from contexts in the training set")
+        response_set.extend(get_utterances(model, model.data['train']['c'], args.verbose))  # get utterances seen in every training context
         logger.debug("= %d responses" % len(response_set))
         logger.debug("remove overlap between context utterances & responses")
         response_set = unique(response_set, verbose=args.verbose)

@@ -265,7 +265,12 @@ def main():
             # Loading old arguments
             with open('%s/%s_args.pkl' % (args.load_path, args.load_prefix), 'rb') as handle:
                 old_args = cPickle.load(handle)
-            
+
+            # Recreate a random W matrix according to old args:
+            W = np.zeros(shape=(len(word2idx), old_args.emb_size))
+            for idx in idx2word:
+                W[idx] = np.random.uniform(-0.25, 0.25, old_args.emb_size)
+
             logger.info("Creating a new one...")
             model = create_model(data, W, word2idx, idx2word, old_args)
 
