@@ -400,10 +400,10 @@ class Model(object):
         if bpe:
             bpe_string = bpe.segment(p_str.strip())  # convert from regular to bpe format
             for w in bpe_string.split():
-                idx.append(self.word2idx.get(w, self.word2idx['**unknown**']))
+                idx.append(self.word2idx.get(w, self.word2idx['<unk>']))
         else:
             for w in p_str.strip().split():
-                idx.append(self.word2idx.get(w, self.word2idx['**unknown**']))
+                idx.append(self.word2idx.get(w, self.word2idx['<unk>']))
         return idx
 
     def indices2string(self, p_indices, bpe_separator=None):
@@ -415,7 +415,7 @@ class Model(object):
         """
         string = []
         for idx in p_indices:
-            string.append(self.idx2word.get(idx, '**unknown**'))
+            string.append(self.idx2word.get(idx, '<unk>'))
         
         if bpe_separator:
             return ' '.join(string).replace(bpe_separator+' ', '')
