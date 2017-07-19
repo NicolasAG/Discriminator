@@ -895,9 +895,9 @@ class Model(object):
                     params = [np.asarray(p.eval()) for p in lasagne.layers.get_all_params(self.l_out)]
                     cPickle.dump(params, handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 with open('%s/%s_best_embed.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
-                    cPickle.dump(self.embeddings.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
+                    cPickle.dump(np.asarray(self.embeddings.eval()), handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 with open('%s/%s_best_M.pkl' % (self.save_path, self.save_prefix), 'wb') as handle:
-                    cPickle.dump(self.M.eval(), handle, protocol=cPickle.HIGHEST_PROTOCOL)
+                    cPickle.dump(np.asarray(self.M.eval()), handle, protocol=cPickle.HIGHEST_PROTOCOL)
                 # Save model.
                 logger.info("Saving model...")
                 with open("%s/%s_model.pkl" % (self.save_path, self.save_prefix), 'wb') as handle:
