@@ -611,8 +611,8 @@ class Model(object):
                             assert self.data[scope]['y'][idx+t] == 0, "data[%s][y][%d]=%s != 0" % (scope, idx+t, self.data[scope]['y'][idx+t])
                             assert self.data[scope]['id'][idx+t] == 'rand', "data[%s][id][%d]=%s != rand" % (scope, idx+t, self.data[scope]['id'][idx+t])
                 except AssertionError as e:
-                    logger.error("AssertionError: %s" % e)
-                    logger.error("Cannot compute recalls")
+                    logger.warning("AssertionError: %s" % e)
+                    logger.warning("Cannot compute recalls")
                     return performances, None
                 
                 # Pad data set to be divisible by batch_size
@@ -641,17 +641,17 @@ class Model(object):
 
         return performances, None
 
-    def test(self):
+    def test(self, scope='test'):
         """
         Compute performances on test set
         :return: None
         """
         # Compute TEST performance:
         # evaluation for each model id in data['test']['id']
-        test_perfs, test_recalls = self.compute_and_save_performance_models("test", compute_recalls=True)
+        test_perfs, test_recalls = self.compute_and_save_performance_models(scope, compute_recalls=True)
         test_perf = np.average(test_perfs)
         logger.info("")
-        logger.info('Average test_perf=%.9f%%' % (test_perf*100))
+        logger.info('Average %s_perf=%.9f%%' % (scope, test_perf*100))
 
     def plot_score_per_length(self, scope='train'):
         """
@@ -784,7 +784,7 @@ class Model(object):
         """
         epoch = 0           # keep track of number of epochs we ran
         best_val_perf = 0   # keep track of best validation score
-        best_val_recall = 0    # keep track of best validation recall@1 score
+        best_val_recall = 0 # keep track of best validation recall@1 score
         test_perf = 0       # keep track of current test score
         test_probas = None  # keep track of current best probabilities
 
@@ -879,13 +879,13 @@ class Model(object):
             logger.info('epoch %i: val_perf=%.9f%%' % (epoch, val_perf*100))
 
             ###
-            # If doing better on validation set, measure each model test performance and same model parameters!
+            # If doing better on validation set, measure each model test performance and save model parameters!
             ###
-            if val_perf > best_val_perf or val_recalls[10][1] > best_val_recall:
+            if val_perf > best_val_perf or (val_recalls and val_recalls[10][1] > best_val_recall):
                 logger.info("")
                 logger.info("Improved average validation score!")
                 best_val_perf = val_perf
-                best_val_recall = val_recalls[10][1]  # score of 1 in 10: R@1
+                if val_recalls: best_val_recall = val_recalls[10][1]  # score of 1 in 10: R@1
                 patience = self.patience  # reset patience to initial value
 
                 # Save current best model parameters.

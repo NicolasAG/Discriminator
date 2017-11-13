@@ -203,6 +203,7 @@ def main():
     parser.add_argument('--retrieve', type='bool', default=False, help='Return responses for each context')
     parser.add_argument('--seed', type=int, default=4213, help='Random seed')
     parser.add_argument('--test', type='bool', default=False, help='Get test accuracies with pre-saved model')
+    parser.add_argument('--verbose', action='store_true', help='Print training loss at each batch')
     # Plot parameters:
     parser.add_argument('--plot_human_scores', type='bool', default=False, help='Plot model score correlation with human scores')
     parser.add_argument('--plot_response_length', type='bool', default=False, help='Plot model score correlation with response length')
@@ -225,10 +226,17 @@ def main():
         train_data, val_data, test_data = cPickle.load(handle)
     # W is the word embedding matrix and word2idx, idx2word are dictionaries
     with open('%s/%s' % (args.data_path, args.dict_fname), 'rb') as handle:
-        word2idx, idx2word = cPickle.load(handle)
-    W = np.zeros(shape=(len(word2idx), args.emb_size))
-    for idx in idx2word:
-        W[idx] = np.random.uniform(-0.25, 0.25, args.emb_size)
+        embeddings = cPickle.load(handle)
+    if len(embeddings) == 2:
+        word2idx, idx2word = embeddings
+        W = np.zeros(shape=(len(word2idx), args.emb_size))
+        for idx in idx2word:
+            W[idx] = np.random.uniform(-0.25, 0.25, args.emb_size)
+    elif len(embeddings) == 3:
+        W, word2idx, idx2word = embeddings
+    else:
+        logger.error("unknown embedding pkl file format: len(.) = %d" % len(embeddings))
+        return
     logger.info("W.shape: %s" % (W.shape,))
 
     logger.info("Number of training examples: %d" % len(train_data['c']))
@@ -354,6 +362,10 @@ def main():
         logger.info("")
         logger.info("Testing the model...")
         model.test()
+        logger.info("")
+        model.test('val')
+        logger.info("")
+        model.test('train')
 
     # If retrieving responses from training set
     elif args.retrieve:
@@ -384,7 +396,7 @@ def main():
     else:
         logger.info("")
         logger.info("Training model...")
-        test_perf = model.train(n_epochs=args.n_epochs, patience=args.patience, verbose=False)
+        test_perf = model.train(n_epochs=args.n_epochs, patience=args.patience, verbose=args.verbose)
         logger.info("Model trained.")
         logger.info("test_perfs = %.9f" % test_perf)
         # logger.info("test_probas = %.9f" % test_probas)
