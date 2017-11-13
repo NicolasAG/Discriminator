@@ -1,0 +1,89 @@
+VIRTUALENV = /nlu/users/nicolas_gontier/py
+THEANO_FLAGS = base_compiledir=/work/.theano-nicolas_gontier,floatX=float32,device=gpu,optimizer=fast_compile
+gpuarray = /nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/libgpuarray
+CUDA = /usr/local/cuda-8.0/bin
+PATH = /usr/local/cuda-8.0/bin:/nlu/users/nicolas_gontier/py/bin:/work/6202753.1.gpu.q:/nlu/users/nicolas_gontier/py/bin:/opt/rh/devtoolset-2/root/usr/bin:/opt/uge850/bin:/opt/uge850/bin/lx-amd64:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/ibutils/bin:/home/nicolas_gontier/bin:/usr/X11R6/bin
+LD_LIBRARY_PATH = :/usr/local/cuda-8.0/lib64
+LIBRARY_PATH = /nlu/users/nicolas_gontier/py/lib
+CPATH = /nlu/users/nicolas_gontier/py/include
+HOME = /nlu/users/nicolas_gontier/home
+
+2017-07-06 14:06:21,964: __main__: INFO: Namespace(de_model='trained_models/ubuntu-bpe-5k_gru-200/gru-200_adam_ubuntu-bpe-5k', responses_file='', verbose=True)
+2017-07-06 14:06:21,964: __main__: INFO: Loading trained_models/ubuntu-bpe-5k_gru-200/gru-200_adam_ubuntu-bpe-5k_model...
+2017-07-06 14:07:11,780: __main__: INFO: Model loaded.
+2017-07-06 14:07:11,781: __main__: INFO: Gathering responses to encode...
+2017-07-06 14:07:38,513: __main__: DEBUG: 1000192 responses
+2017-07-06 14:07:38,513: __main__: DEBUG:   pading with -1 so that each utterance is of the same length...
+2017-07-06 14:08:36,033: __main__: DEBUG:   removing duplicates...
+2017-07-06 14:12:49,913: __main__: DEBUG:   remove padded -1's from utterances...
+2017-07-06 14:12:54,081: __main__: DEBUG: = 741928 unique responses
+2017-07-06 14:12:54,081: __main__: DEBUG: get context utterances progress: 0 / 1000192
+2017-07-06 14:13:33,919: __main__: DEBUG: get context utterances progress: 100000 / 1000192
+2017-07-06 14:14:13,488: __main__: DEBUG: get context utterances progress: 200000 / 1000192
+2017-07-06 14:14:53,686: __main__: DEBUG: get context utterances progress: 300000 / 1000192
+2017-07-06 14:15:33,181: __main__: DEBUG: get context utterances progress: 400000 / 1000192
+2017-07-06 14:16:12,218: __main__: DEBUG: get context utterances progress: 500000 / 1000192
+2017-07-06 14:16:51,290: __main__: DEBUG: get context utterances progress: 600000 / 1000192
+2017-07-06 14:17:31,386: __main__: DEBUG: get context utterances progress: 700000 / 1000192
+2017-07-06 14:18:10,788: __main__: DEBUG: get context utterances progress: 800000 / 1000192
+2017-07-06 14:18:49,900: __main__: DEBUG: get context utterances progress: 900000 / 1000192
+2017-07-06 14:19:28,818: __main__: DEBUG: get context utterances progress: 1000000 / 1000192
+2017-07-06 14:19:28,928: __main__: DEBUG:   pading with -1 so that each utterance is of the same length...
+2017-07-06 14:23:32,474: __main__: DEBUG:   removing duplicates...
+2017-07-06 15:15:12,469: __main__: DEBUG:   remove padded -1's from utterances...
+2017-07-06 15:15:36,059: __main__: DEBUG: + 3303731 unique utterances from contexts
+2017-07-06 15:15:36,217: __main__: DEBUG: = 4045659 responses
+2017-07-06 15:15:36,219: __main__: DEBUG: index to string conversion progress: 0 / 4045659
+2017-07-06 15:15:36,782: __main__: DEBUG: index to string conversion progress: 100000 / 4045659
+2017-07-06 15:15:37,453: __main__: DEBUG: index to string conversion progress: 200000 / 4045659
+2017-07-06 15:15:38,274: __main__: DEBUG: index to string conversion progress: 300000 / 4045659
+2017-07-06 15:15:39,265: __main__: DEBUG: index to string conversion progress: 400000 / 4045659
+2017-07-06 15:15:40,398: __main__: DEBUG: index to string conversion progress: 500000 / 4045659
+2017-07-06 15:15:42,126: __main__: DEBUG: index to string conversion progress: 600000 / 4045659
+2017-07-06 15:15:44,524: __main__: DEBUG: index to string conversion progress: 700000 / 4045659
+2017-07-06 15:15:46,570: __main__: DEBUG: index to string conversion progress: 800000 / 4045659
+2017-07-06 15:15:47,028: __main__: DEBUG: index to string conversion progress: 900000 / 4045659
+2017-07-06 15:15:47,580: __main__: DEBUG: index to string conversion progress: 1000000 / 4045659
+2017-07-06 15:15:48,179: __main__: DEBUG: index to string conversion progress: 1100000 / 4045659
+2017-07-06 15:15:48,850: __main__: DEBUG: index to string conversion progress: 1200000 / 4045659
+2017-07-06 15:15:49,578: __main__: DEBUG: index to string conversion progress: 1300000 / 4045659
+2017-07-06 15:15:50,332: __main__: DEBUG: index to string conversion progress: 1400000 / 4045659
+2017-07-06 15:15:51,066: __main__: DEBUG: index to string conversion progress: 1500000 / 4045659
+2017-07-06 15:15:51,830: __main__: DEBUG: index to string conversion progress: 1600000 / 4045659
+2017-07-06 15:15:52,635: __main__: DEBUG: index to string conversion progress: 1700000 / 4045659
+2017-07-06 15:15:53,487: __main__: DEBUG: index to string conversion progress: 1800000 / 4045659
+2017-07-06 15:15:54,440: __main__: DEBUG: index to string conversion progress: 1900000 / 4045659
+2017-07-06 15:15:55,428: __main__: DEBUG: index to string conversion progress: 2000000 / 4045659
+2017-07-06 15:15:56,454: __main__: DEBUG: index to string conversion progress: 2100000 / 4045659
+2017-07-06 15:15:57,546: __main__: DEBUG: index to string conversion progress: 2200000 / 4045659
+2017-07-06 15:15:58,651: __main__: DEBUG: index to string conversion progress: 2300000 / 4045659
+2017-07-06 15:15:59,840: __main__: DEBUG: index to string conversion progress: 2400000 / 4045659
+2017-07-06 15:16:01,101: __main__: DEBUG: index to string conversion progress: 2500000 / 4045659
+2017-07-06 15:16:02,396: __main__: DEBUG: index to string conversion progress: 2600000 / 4045659
+2017-07-06 15:16:03,760: __main__: DEBUG: index to string conversion progress: 2700000 / 4045659
+2017-07-06 15:16:05,147: __main__: DEBUG: index to string conversion progress: 2800000 / 4045659
+2017-07-06 15:16:06,740: __main__: DEBUG: index to string conversion progress: 2900000 / 4045659
+2017-07-06 15:16:08,450: __main__: DEBUG: index to string conversion progress: 3000000 / 4045659
+2017-07-06 15:16:10,324: __main__: DEBUG: index to string conversion progress: 3100000 / 4045659
+2017-07-06 15:16:12,228: __main__: DEBUG: index to string conversion progress: 3200000 / 4045659
+2017-07-06 15:16:14,197: __main__: DEBUG: index to string conversion progress: 3300000 / 4045659
+2017-07-06 15:16:16,437: __main__: DEBUG: index to string conversion progress: 3400000 / 4045659
+2017-07-06 15:16:18,901: __main__: DEBUG: index to string conversion progress: 3500000 / 4045659
+2017-07-06 15:16:21,514: __main__: DEBUG: index to string conversion progress: 3600000 / 4045659
+2017-07-06 15:16:24,528: __main__: DEBUG: index to string conversion progress: 3700000 / 4045659
+2017-07-06 15:16:27,859: __main__: DEBUG: index to string conversion progress: 3800000 / 4045659
+2017-07-06 15:16:31,774: __main__: DEBUG: index to string conversion progress: 3900000 / 4045659
+2017-07-06 15:16:36,781: __main__: DEBUG: index to string conversion progress: 4000000 / 4045659
+2017-07-06 15:16:40,644: __main__: INFO: Computing response encodding of 4045659 unique responses...
+2017-07-06 15:18:11,888: model: INFO: Computing response embeddings...
+0% [#                             ] 100% | ETA: 02:50:110% [##                            ] 100% | ETA: 02:43:280% [###                           ] 100% | ETA: 02:37:170% [####                          ] 100% | ETA: 02:31:240% [#####                         ] 100% | ETA: 02:25:370% [######                        ] 100% | ETA: 02:19:490% [#######                       ] 100% | ETA: 02:13:570% [########                      ] 100% | ETA: 02:08:070% [#########                     ] 100% | ETA: 02:02:190% [##########                    ] 100% | ETA: 01:56:340% [###########                   ] 100% | ETA: 01:50:370% [############                  ] 100% | ETA: 01:44:460% [#############                 ] 100% | ETA: 01:38:550% [##############                ] 100% | ETA: 01:33:010% [###############               ] 100% | ETA: 01:27:100% [################              ] 100% | ETA: 01:21:190% [#################             ] 100% | ETA: 01:15:320% [##################            ] 100% | ETA: 01:09:440% [###################           ] 100% | ETA: 01:03:550% [####################          ] 100% | ETA: 00:58:070% [#####################         ] 100% | ETA: 00:52:190% [######################        ] 100% | ETA: 00:46:300% [#######################       ] 100% | ETA: 00:40:400% [########################      ] 100% | ETA: 00:34:510% [#########################     ] 100% | ETA: 00:29:020% [##########################    ] 100% | ETA: 00:23:140% [###########################   ] 100% | ETA: 00:17:260% [############################  ] 100% | ETA: 00:11:360% [############################# ] 100% | ETA: 00:05:480% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 02:54:16
+
+2017-07-06 18:12:28,752: model: INFO: Computing context embeddings...
+0% [#] 100% | ETA: 00:00:000% [#] 100% | ETA: 00:00:00
+Total time elapsed: 00:00:00
+
+2017-07-06 18:12:35,877: model: INFO: Retrieving top 1 responses for context 1-->1/1...
+2017-07-06 18:12:43,028: __main__: INFO: Got 4045659 encoddings
+2017-07-06 18:12:43,033: __main__: INFO: Saving retrieved information to trained_models/ubuntu-bpe-5k_gru-200/gru-200_adam_ubuntu-bpe-5k_r-encs.pkl...
+2017-07-06 18:13:38,018: __main__: INFO: saved.

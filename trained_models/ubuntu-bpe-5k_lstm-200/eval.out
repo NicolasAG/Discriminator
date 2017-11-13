@@ -1,40 +1,41 @@
-Using gpu device 2: Tesla K10.G1.8GB (CNMeM is disabled, cuDNN 5105)
+Using gpu device 0: Tesla K10.G1.8GB (CNMeM is disabled, cuDNN 5105)
 /nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/theano/sandbox/cuda/__init__.py:600: UserWarning: Your cuDNN version is more recent than the one Theano officially supports. If you see any problems, try updating Theano or downgrading cuDNN to version 5.
   warnings.warn(warn)
-2017-06-21 10:56:01,406: __main__: INFO: args: Namespace(W_fname='W_BPE-5k-rnd.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/bpe_v2', dataset_fname='DE_BPE-5k-dataset.pkl', emb_penalty=0.001, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./trained_models/ubuntu-bpe-5k_lstm-200', load_prefix='lstm-200_adam_ubuntu-bpe-5k', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=True, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='lstm-200_adam_ubuntu-bpe-5k', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
-2017-06-21 10:56:01,411: __main__: INFO: saved.
-2017-06-21 10:56:01,411: __main__: INFO:
-2017-06-21 10:56:01,411: __main__: INFO: Loading data...
-2017-06-21 10:56:47,065: __main__: INFO: W.shape: (6285, 300)
-2017-06-21 10:56:47,066: __main__: INFO: Number of training examples: 1000192
-2017-06-21 10:56:47,066: __main__: INFO: Number of validation examples: 195600
-2017-06-21 10:56:47,066: __main__: INFO: Number of test examples: 189200
-2017-06-21 10:56:47,066: __main__: INFO: data loaded!
-2017-06-21 10:56:47,066: __main__: INFO:
-2017-06-21 10:56:47,066: __main__: INFO: Loading model...
-2017-06-21 10:57:42,121: __main__: INFO: Model loaded.
-2017-06-21 10:57:42,122: __main__: INFO:
-2017-06-21 10:57:42,123: __main__: INFO: plot learning curves...
-2017-06-21 10:57:42,694: model: INFO: saved plot.
-2017-06-21 10:57:42,912: model: INFO: saved plot.
-2017-06-21 10:57:42,912: __main__: INFO:
-2017-06-21 10:57:42,912: __main__: INFO: Testing the model...
-2017-06-21 10:57:43,187: model: INFO: evaluating rand
-2017-06-21 11:03:56,585: model: INFO: test_perf: 80.587855297%
-2017-06-21 11:03:56,586: model: INFO: evaluating true
-2017-06-21 11:04:38,232: model: INFO: test_perf: 79.445031712%
-2017-06-21 11:04:38,232: model: INFO:
-2017-06-21 11:04:38,232: model: DEBUG: verifying data format for recalls...
-2017-06-21 11:11:34,918: model: INFO: Computing recalls...
-2017-06-21 11:11:34,918: model: INFO: group_size: 2
-2017-06-21 11:11:35,563: model: INFO: recall@1 = 0.885328569012
-2017-06-21 11:11:35,563: model: INFO: group_size: 5
-2017-06-21 11:11:36,268: model: INFO: recall@1 = 0.707089394452
-2017-06-21 11:11:37,208: model: INFO: recall@2 = 0.88136417456
-2017-06-21 11:11:37,209: model: INFO: group_size: 10
-2017-06-21 11:11:38,241: model: INFO: recall@1 = 0.573092861976
-2017-06-21 11:11:39,073: model: INFO: recall@2 = 0.751067743572
-2017-06-21 11:11:39,906: model: INFO: recall@5 = 0.940354364005
-2017-06-21 11:11:39,907: model: INFO:
-2017-06-21 11:11:39,907: model: INFO: Average test_perf=80.016443505%
+2017-06-23 16:08:16,974: __main__: INFO: args: Namespace(W_fname='W_BPE-5k-rnd.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/bpe_v2', dataset_fname='DE_BPE-5k-dataset.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./trained_models/ubuntu-bpe-5k_lstm-200', load_prefix='lstm-200_adam_ubuntu-bpe-5k', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=True, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='lstm-200_adam_ubuntu-bpe-5k', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
+2017-06-23 16:08:16,989: __main__: INFO: saved.
+2017-06-23 16:08:16,989: __main__: INFO:
+2017-06-23 16:08:16,989: __main__: INFO: Loading data...
+2017-06-23 16:09:06,639: __main__: INFO: W.shape: (6285, 300)
+2017-06-23 16:09:06,639: __main__: INFO: Number of training examples: 1000192
+2017-06-23 16:09:06,639: __main__: INFO: Number of validation examples: 195600
+2017-06-23 16:09:06,639: __main__: INFO: Number of test examples: 189200
+2017-06-23 16:09:06,639: __main__: INFO: data loaded!
+2017-06-23 16:09:06,639: __main__: INFO:
+2017-06-23 16:09:06,639: __main__: INFO: Loading model...
+2017-06-23 16:10:04,378: __main__: INFO: Model loaded.
+2017-06-23 16:10:04,380: __main__: INFO:
+2017-06-23 16:10:04,381: __main__: INFO: plot learning curves...
+2017-06-23 16:10:04,740: model: INFO: saved plot.
+2017-06-23 16:10:05,000: model: INFO: saved plot.
+2017-06-23 16:10:05,000: __main__: INFO:
+2017-06-23 16:10:05,001: __main__: INFO: Testing the model...
+2017-06-23 16:10:05,312: model: INFO: evaluating rand
+2017-06-23 16:21:32,286: model: INFO: test_perf: 80.563190040%
+2017-06-23 16:21:32,286: model: INFO: evaluating true
+2017-06-23 16:22:48,357: model: INFO: test_perf: 79.260042283%
+2017-06-23 16:22:48,357: model: INFO:
+2017-06-23 16:22:48,357: model: DEBUG: verifying data format for recalls...
+2017-06-23 16:22:48,358: model: DEBUG: ok. computing 189440 probabilities now...
+2017-06-23 16:35:25,405: model: INFO: Computing recalls...
+2017-06-23 16:35:25,406: model: INFO: group_size: 2
+2017-06-23 16:35:26,135: model: INFO: recall@1 = 0.888266384778
+2017-06-23 16:35:26,135: model: INFO: group_size: 5
+2017-06-23 16:35:26,925: model: INFO: recall@1 = 0.705549682875
+2017-06-23 16:35:27,705: model: INFO: recall@2 = 0.881818181818
+2017-06-23 16:35:27,705: model: INFO: group_size: 10
+2017-06-23 16:35:28,628: model: INFO: recall@1 = 0.573044397463
+2017-06-23 16:35:29,565: model: INFO: recall@2 = 0.751057082452
+2017-06-23 16:35:30,499: model: INFO: recall@5 = 0.94032769556
+2017-06-23 16:35:30,500: model: INFO:
+2017-06-23 16:35:30,500: model: INFO: Average test_perf=79.911616162%
 

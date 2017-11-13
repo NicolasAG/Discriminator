@@ -1,0 +1,43 @@
+2017-11-12 12:21:00,968: __main__: INFO: args: Namespace(act_penalty=500, batch_size=256, data_path='../data/convai/de', dataset_fname='round1_DE.dataset.pkl', dict_fname='round1_DE.dict.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, emb_size=300, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./', load_prefix='convai-h2h_exp1', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=False, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='convai-h2h_exp1', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False, verbose=False)
+2017-11-12 12:21:00,969: __main__: INFO: 
+2017-11-12 12:21:00,969: __main__: INFO: Loading data...
+2017-11-12 12:21:01,080: __main__: INFO: W.shape: (3369, 300)
+2017-11-12 12:21:01,081: __main__: INFO: Number of training examples: 5046
+2017-11-12 12:21:01,081: __main__: INFO: (padded to batch size) New number of training examples: 5120
+2017-11-12 12:21:01,081: __main__: INFO: Number of validation examples: 650
+2017-11-12 12:21:01,081: __main__: INFO: Number of test examples: 604
+2017-11-12 12:21:01,081: __main__: INFO: data loaded!
+2017-11-12 12:21:01,081: __main__: INFO: 
+2017-11-12 12:21:01,081: __main__: INFO: Loading model...
+2017-11-12 12:21:07,851: __main__: INFO: Model loaded.
+2017-11-12 12:21:07,852: __main__: INFO: 
+2017-11-12 12:21:07,853: __main__: INFO: Testing the model...
+2017-11-12 12:21:07,855: model: INFO: evaluating rand
+2017-11-12 12:21:08,127: model: INFO: test_perf: 52.980132450%
+2017-11-12 12:21:08,128: model: INFO: evaluating true
+2017-11-12 12:21:08,392: model: INFO: test_perf: 51.986754967%
+2017-11-12 12:21:08,392: model: INFO: 
+2017-11-12 12:21:08,392: model: DEBUG: verifying data format for recalls...
+2017-11-12 12:21:08,392: model: WARNING: AssertionError: contexts don't match! has data been shuffled?
+2017-11-12 12:21:08,392: model: WARNING: Cannot compute recalls
+2017-11-12 12:21:08,392: model: INFO: 
+2017-11-12 12:21:08,392: model: INFO: Average test_perf=52.483443709%
+2017-11-12 12:21:08,392: __main__: INFO: 
+2017-11-12 12:21:08,392: model: INFO: evaluating rand
+2017-11-12 12:21:08,825: model: INFO: val_perf: 51.384615385%
+2017-11-12 12:21:08,825: model: INFO: evaluating true
+2017-11-12 12:21:09,227: model: INFO: val_perf: 56.000000000%
+2017-11-12 12:21:09,227: model: INFO: 
+2017-11-12 12:21:09,227: model: DEBUG: verifying data format for recalls...
+2017-11-12 12:21:09,227: model: WARNING: AssertionError: contexts don't match! has data been shuffled?
+2017-11-12 12:21:09,227: model: WARNING: Cannot compute recalls
+2017-11-12 12:21:09,227: model: INFO: 
+2017-11-12 12:21:09,227: model: INFO: Average val_perf=53.692307692%
+2017-11-12 12:21:09,227: __main__: INFO: 
+2017-11-12 12:21:09,228: model: INFO: evaluating rand
+2017-11-12 12:21:12,287: model: INFO: train_perf: 98.496835443%
+2017-11-12 12:21:12,287: model: INFO: evaluating true
+2017-11-12 12:21:15,199: model: INFO: train_perf: 98.971518987%
+2017-11-12 12:21:15,199: model: WARNING: train set has been shuffled, unable to compute recalls!
+2017-11-12 12:21:15,200: model: INFO: 
+2017-11-12 12:21:15,200: model: INFO: Average train_perf=98.734177215%

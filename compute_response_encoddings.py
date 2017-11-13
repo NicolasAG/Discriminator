@@ -136,7 +136,7 @@ def unique(alist, verbose=False):
 def get_utterances(model, dialogues, verbose=False):
     utterances = []
     for c_idx, c in enumerate(dialogues):
-        if verbose and c_idx % 100000 == 0:
+        if verbose and c_idx % 1000 == 0:
             logger.debug("get utterances progress: %d / %d" % (c_idx, len(dialogues)))
         utt = np.split(c, np.where(np.asarray(c) == model.word2idx[EOT_TOKEN])[0]+1)  # list of utterances
         utt = unique(utt, verbose=False)
@@ -168,7 +168,7 @@ def main():
     except pkl.UnpicklingError:
         logger.error("cPickle.UnpicklingError: couldn't load the model")
         logger.info("Creating a new one...")
-        model = create_model(args.de_model, test=False)
+        model = create_model(args.de_model, test=True)
 
     with open('%s_timings.pkl' % args.de_model, 'rb') as handle:
         timings = pkl.load(handle)
@@ -185,12 +185,11 @@ def main():
         logger.debug("remove overlap between context utterances & responses")
         response_set = unique(response_set, verbose=args.verbose)
         logger.debug("final count: %d" % len(response_set))
-        
-        
+
         # convert response_set from idx to string
         response_set_str = []
         for r_id, r in enumerate(response_set):
-            if args.verbose and r_id % 100000 == 0:
+            if args.verbose and r_id % 1000 == 0:
                 logger.debug("index to string conversion progress: %d / %d" % (r_id, len(response_set)))
             response_set_str.append(model.indices2string(r))
     else:
@@ -199,7 +198,7 @@ def main():
             response_set_str = handle.readlines()
             response_set = []
             for r_id, r in enumerate(response_set_str):
-                if args.verbose and r_id % 100000 == 0:
+                if args.verbose and r_id % 1000 == 0:
                     logger.debug("string to idx conversion progress: %d / %d" % (r_id, len(response_set_str)))
                 response_set.append(model.string2indices(r))
 

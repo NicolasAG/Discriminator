@@ -1,16 +1,16 @@
 #!/usr/bin/env bash
 
-echo "VIRTUALENV = $VIRTUALENV"
-. $VIRTUALENV/bin/activate
+# echo "VIRTUALENV = $VIRTUALENV"
+# . $VIRTUALENV/bin/activate
 
-export THEANO_FLAGS=$THEANO_FLAGS,device=gpu,optimizer=fast_compile  # ,exception_verbosity=high
-echo "THEANO_FLAGS = $THEANO_FLAGS"
+# export THEANO_FLAGS=$THEANO_FLAGS,device=gpu,optimizer=fast_compile  # ,exception_verbosity=high
+# echo "THEANO_FLAGS = $THEANO_FLAGS"
 
-CUDA_VERSION="8.0"
-export CUDA=/usr/local/cuda-${CUDA_VERSION}/bin
-export PATH=${CUDA}:$PATH
+# CUDA_VERSION="8.0"
+# export CUDA=/usr/local/cuda-${CUDA_VERSION}/bin
+# export PATH=${CUDA}:$PATH
 
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-${CUDA_VERSION}/lib64
+# export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-${CUDA_VERSION}/lib64
 # export LIBRARY_PATH=$LIBRARY_PATH:/usr/local/cuda-${CUDA_VERSION}/lib64
 # export CPATH=$CPATH:/usr/local/cuda-${CUDA_VERSION}/lib64
 
@@ -19,28 +19,27 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda-${CUDA_VERSION}/lib64
 # export CPATH=$CPATH:${gpuarray}/include
 
 # To use P100 GPUs:
-export CUDA_CACHE_PATH=/lm/scratch/nicolas_gontier/cuda_cache
+# export CUDA_CACHE_PATH=/lm/scratch/nicolas_gontier/cuda_cache
 
-export HOME=/nlu/users/nicolas_gontier/home
+# echo "gpuarray = ${gpuarray}"
+# echo "CUDA = $CUDA"
+# echo "PATH = $PATH"
+# echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
+# echo "LIBRARY_PATH = $LIBRARY_PATH"
+# echo "CPATH = $CPATH"
+# echo "HOME = $HOME"
 
-echo "gpuarray = ${gpuarray}"
-echo "CUDA = $CUDA"
-echo "PATH = $PATH"
-echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
-echo "LIBRARY_PATH = $LIBRARY_PATH"
-echo "CPATH = $CPATH"
-echo "HOME = $HOME"
-
-echo ""
+# echo ""
 
 python2.7 main.py \
     --data_path './ubuntu_dataset/bpe_v2' \
     --dataset_fname 'DE_BPE-5k-dataset.pkl' \
-    --W_fname 'W_BPE-5k-rnd.pkl' \
+    --dict_fname 'W_BPE-5k-rnd.pkl' \
     --save_path '.' \
     --save_prefix 'bi-lstm-200_adam_ubuntu-bpe-5k' \
     --batch_size 256 \
     --encoder 'lstm' \
+    --emb_size 300 \
     --hidden_size 200 \
     --is_bidirectional True \
     --dropout_out 0. \
@@ -55,3 +54,4 @@ python2.7 main.py \
     #--load_path './trained_models/ubuntu-v2_lstm-200' \
     #--load_prefix 'lstm-200_adam_ubuntu-v2' \
     #--resume True
+

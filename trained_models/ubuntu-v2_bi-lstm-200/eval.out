@@ -1,0 +1,47 @@
+VIRTUALENV = /nlu/users/nicolas_gontier/py
+THEANO_FLAGS = base_compiledir=/work/.theano-nicolas_gontier,floatX=float32,device=gpu
+gpuarray = /nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/libgpuarray
+CUDA = /usr/local/cuda-8.0/bin
+PATH = /usr/local/cuda-8.0/bin:/nlu/users/nicolas_gontier/py/bin:/work/5962354.1.gpu.q:/opt/rh/devtoolset-2/root/usr/bin:/opt/uge850/bin:/opt/uge850/bin/lx-amd64:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/ibutils/bin:/home/nicolas_gontier/bin:/usr/X11R6/bin
+LD_LIBRARY_PATH = :/usr/local/cuda-8.0/lib64
+LIBRARY_PATH = /nlu/users/nicolas_gontier/py/lib
+CPATH = /nlu/users/nicolas_gontier/py/include
+HOME = /nlu/users/nicolas_gontier/home
+
+2017-06-26 10:03:08,077: __main__: INFO: args: Namespace(W_fname='W_glove.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/v2', dataset_fname='DE_dataset.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./trained_models/ubuntu-v2_bi-lstm-200', load_prefix='bi-lstm-200_adam_ubuntu-v2', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=True, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='bi-lstm-200_adam_ubuntu-v2', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
+2017-06-26 10:03:08,078: __main__: INFO: saved.
+2017-06-26 10:03:08,078: __main__: INFO: 
+2017-06-26 10:03:08,078: __main__: INFO: Loading data...
+2017-06-26 10:04:03,915: __main__: INFO: W.shape: (858977, 300)
+2017-06-26 10:04:03,916: __main__: INFO: Number of training examples: 1000192
+2017-06-26 10:04:03,916: __main__: INFO: Number of validation examples: 195600
+2017-06-26 10:04:03,916: __main__: INFO: Number of test examples: 189200
+2017-06-26 10:04:03,916: __main__: INFO: data loaded!
+2017-06-26 10:04:03,916: __main__: INFO: 
+2017-06-26 10:04:03,916: __main__: INFO: Loading model...
+2017-06-26 10:05:23,378: __main__: INFO: Model loaded.
+2017-06-26 10:05:23,380: __main__: INFO: 
+2017-06-26 10:05:23,381: __main__: INFO: plot learning curves...
+2017-06-26 10:05:23,731: model: INFO: saved plot.
+2017-06-26 10:05:23,932: model: INFO: saved plot.
+2017-06-26 10:05:23,932: __main__: INFO: 
+2017-06-26 10:05:23,932: __main__: INFO: Testing the model...
+2017-06-26 10:05:24,204: model: INFO: evaluating rand
+2017-06-26 10:11:18,475: model: INFO: test_perf: 81.221517501%
+2017-06-26 10:11:18,476: model: INFO: evaluating true
+2017-06-26 10:11:57,789: model: INFO: test_perf: 72.367864693%
+2017-06-26 10:11:57,789: model: INFO: 
+2017-06-26 10:11:57,789: model: DEBUG: verifying data format for recalls...
+2017-06-26 10:11:57,789: model: DEBUG: ok. computing 189440 probabilities now...
+2017-06-26 10:18:31,912: model: INFO: Computing recalls...
+2017-06-26 10:18:31,912: model: INFO: group_size: 2
+2017-06-26 10:18:32,339: model: INFO: recall@1 = 0.856712473573
+2017-06-26 10:18:32,339: model: INFO: group_size: 5
+2017-06-26 10:18:32,814: model: INFO: recall@1 = 0.659778012685
+2017-06-26 10:18:33,301: model: INFO: recall@2 = 0.844820295983
+2017-06-26 10:18:33,301: model: INFO: group_size: 10
+2017-06-26 10:18:33,882: model: INFO: recall@1 = 0.523890063425
+2017-06-26 10:18:34,475: model: INFO: recall@2 = 0.69978858351
+2017-06-26 10:18:35,058: model: INFO: recall@5 = 0.91511627907
+2017-06-26 10:18:35,059: model: INFO: 
+2017-06-26 10:18:35,059: model: INFO: Average test_perf=76.794691097%

@@ -1,0 +1,40 @@
+WARNING (theano.sandbox.cuda): The cuda backend is deprecated and will be removed in the next release (v0.10).  Please switch to the gpuarray backend. You can get more information about how to switch at this URL:
+ https://github.com/Theano/Theano/wiki/Converting-to-the-new-gpu-back-end%28gpuarray%29
+
+Using gpu device 0: GeForce GTX TITAN X (CNMeM is disabled, cuDNN 6021)
+/home/ml/nangel3/.local/lib/python2.7/site-packages/theano/sandbox/cuda/__init__.py:631: UserWarning: Your cuDNN version is more recent than the one Theano officially supports. If you see any problems, try updating Theano or downgrading cuDNN to version 5.1.
+  warnings.warn(warn)
+2017-07-19 11:43:09,354: __main__: INFO: args: Namespace(act_penalty=500, batch_size=256, data_path='../data/reddit/convai/bpe_data/de', dataset_fname='DE.dataset.pkl', dict_fname='DE.dict.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, emb_size=300, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./trained_models/reddit-bpe5k_exp2', load_prefix='reddit_exp2', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=False, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='reddit_exp2', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
+2017-07-19 11:43:09,354: __main__: INFO:
+2017-07-19 11:43:09,354: __main__: INFO: Loading data...
+2017-07-19 11:46:15,078: __main__: INFO: W.shape: (9097, 300)
+2017-07-19 11:46:15,078: __main__: INFO: Number of training examples: 4907262
+2017-07-19 11:46:15,079: __main__: INFO: (padded to batch size) New number of training examples: 4907264
+2017-07-19 11:46:15,079: __main__: INFO: Number of validation examples: 1362480
+2017-07-19 11:46:15,079: __main__: INFO: Number of test examples: 1363070
+2017-07-19 11:46:15,079: __main__: INFO: data loaded!
+2017-07-19 11:46:15,079: __main__: INFO:
+2017-07-19 11:46:15,079: __main__: INFO: Loading model...
+2017-07-19 11:49:31,980: __main__: INFO: Model loaded.
+2017-07-19 11:49:31,980: __main__: INFO:
+2017-07-19 11:49:31,981: __main__: INFO: Testing the model...
+2017-07-19 11:49:33,227: model: INFO: evaluating rand
+2017-07-19 13:18:05,857: model: INFO: test_perf: 82.451378139%
+2017-07-19 13:18:05,857: model: INFO: evaluating true
+2017-07-19 13:28:17,582: model: INFO: test_perf: 84.236319485%
+2017-07-19 13:28:17,582: model: INFO:
+2017-07-19 13:28:17,582: model: DEBUG: verifying data format for recalls...
+2017-07-19 13:28:18,995: model: DEBUG: ok. computing 1363200 probabilities now...
+2017-07-19 14:10:58,452: model: INFO: Computing recalls...
+2017-07-19 14:10:58,452: model: INFO: group_size: 2
+2017-07-19 14:11:01,524: model: INFO: recall@1 = 0.917084228983
+2017-07-19 14:11:01,524: model: INFO: group_size: 5
+2017-07-19 14:11:04,817: model: INFO: recall@1 = 0.781485910481
+2017-07-19 14:11:08,203: model: INFO: recall@2 = 0.919842708005
+2017-07-19 14:11:08,203: model: INFO: group_size: 10
+2017-07-19 14:11:12,107: model: INFO: recall@1 = 0.673927237779
+2017-07-19 14:11:15,987: model: INFO: recall@2 = 0.820060598502
+2017-07-19 14:11:19,707: model: INFO: recall@5 = 0.964455237075
+2017-07-19 14:11:19,712: model: INFO:
+2017-07-19 14:11:19,712: model: INFO: Average test_perf=83.343848812%
+

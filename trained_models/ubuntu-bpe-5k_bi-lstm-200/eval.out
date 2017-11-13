@@ -1,0 +1,40 @@
+Using gpu device 14: Tesla K10.G1.8GB (CNMeM is disabled, cuDNN 5105)
+/nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/theano/sandbox/cuda/__init__.py:600: UserWarning: Your cuDNN version is more recent than the one Theano officially supports. If you see any problems, try updating Theano or downgrading cuDNN to version 5.
+  warnings.warn(warn)
+2017-06-23 10:33:21,652: __main__: INFO: args: Namespace(W_fname='W_BPE-5k-rnd.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/bpe_v2', dataset_fname='DE_BPE-5k-dataset.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./trained_models/ubuntu-bpe-5k_bi-lstm-200', load_prefix='bi-lstm-200_adam_ubuntu-bpe-5k', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=True, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='bi-lstm-200_adam_ubuntu-bpe-5k', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
+2017-06-23 10:33:21,655: __main__: INFO: saved.
+2017-06-23 10:33:21,655: __main__: INFO:
+2017-06-23 10:33:21,655: __main__: INFO: Loading data...
+2017-06-23 10:34:11,078: __main__: INFO: W.shape: (6285, 300)
+2017-06-23 10:34:11,079: __main__: INFO: Number of training examples: 1000192
+2017-06-23 10:34:11,079: __main__: INFO: Number of validation examples: 195600
+2017-06-23 10:34:11,079: __main__: INFO: Number of test examples: 189200
+2017-06-23 10:34:11,079: __main__: INFO: data loaded!
+2017-06-23 10:34:11,079: __main__: INFO:
+2017-06-23 10:34:11,079: __main__: INFO: Loading model...
+2017-06-23 10:35:32,282: __main__: INFO: Model loaded.
+2017-06-23 10:35:32,285: __main__: INFO:
+2017-06-23 10:35:32,287: __main__: INFO: plot learning curves...
+2017-06-23 10:35:32,842: model: INFO: saved plot.
+2017-06-23 10:35:33,107: model: INFO: saved plot.
+2017-06-23 10:35:33,107: __main__: INFO:
+2017-06-23 10:35:33,107: __main__: INFO: Testing the model...
+2017-06-23 10:35:33,438: model: INFO: evaluating rand
+2017-06-23 11:06:19,527: model: INFO: test_perf: 80.466290815%
+2017-06-23 11:06:19,527: model: INFO: evaluating true
+2017-06-23 11:09:42,323: model: INFO: test_perf: 79.645877378%
+2017-06-23 11:09:42,323: model: INFO:
+2017-06-23 11:09:42,323: model: DEBUG: verifying data format for recalls...
+2017-06-23 11:43:51,767: model: INFO: Computing recalls...
+2017-06-23 11:43:51,768: model: INFO: group_size: 2
+2017-06-23 11:43:52,489: model: INFO: recall@1 = 0.882579922192
+2017-06-23 11:43:52,489: model: INFO: group_size: 5
+2017-06-23 11:43:53,262: model: INFO: recall@1 = 0.704552182003
+2017-06-23 11:43:54,040: model: INFO: recall@2 = 0.884271397158
+2017-06-23 11:43:54,041: model: INFO: group_size: 10
+2017-06-23 11:43:54,953: model: INFO: recall@1 = 0.571295669824
+2017-06-23 11:43:55,877: model: INFO: recall@2 = 0.751120602165
+2017-06-23 11:43:56,794: model: INFO: recall@5 = 0.94241584912
+2017-06-23 11:43:56,795: model: INFO:
+2017-06-23 11:43:56,795: model: INFO: Average test_perf=80.056084097%
+

@@ -1,0 +1,43 @@
+VIRTUALENV = /nlu/users/nicolas_gontier/py
+THEANO_FLAGS = base_compiledir=/work/.theano-nicolas_gontier,floatX=float32,device=gpu
+gpuarray = /nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/libgpuarray
+CUDA = /usr/local/cuda-8.0/bin
+PATH = /usr/local/cuda-8.0/bin:/nlu/users/nicolas_gontier/py/bin:/work/6202502.1.gpu.q:/nlu/users/nicolas_gontier/py/bin:/opt/rh/devtoolset-2/root/usr/bin:/opt/uge850/bin:/opt/uge850/bin/lx-amd64:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/ibutils/bin:/home/nicolas_gontier/bin:/usr/X11R6/bin
+LD_LIBRARY_PATH = :/usr/local/cuda-8.0/lib64
+LIBRARY_PATH = /nlu/users/nicolas_gontier/py/lib
+CPATH = /nlu/users/nicolas_gontier/py/include
+HOME = /nlu/users/nicolas_gontier/home
+
+2017-07-06 12:28:54,764: __main__: INFO: args: Namespace(W_fname='W_BPE-5k-rnd.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/bpe_v2', dataset_fname='DE_BPE-5k-dataset.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, encoder='rnn', fine_tune_M=False, fine_tune_W=False, hidden_size=200, is_bidirectional=False, k=4, load_path='./trained_models/ubuntu-bpe-5k_gru-200', load_prefix='gru-200_adam_ubuntu-bpe-5k', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=False, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='gru-200_adam_ubuntu-bpe-5k', seed=4213, sort_by_len=False, test=True, train_examples=None, use_ntn=False)
+2017-07-06 12:28:54,766: __main__: INFO: saved.
+2017-07-06 12:28:54,766: __main__: INFO: 
+2017-07-06 12:28:54,766: __main__: INFO: Loading data...
+2017-07-06 12:29:41,971: __main__: INFO: W.shape: (6285, 300)
+2017-07-06 12:29:41,971: __main__: INFO: Number of training examples: 1000192
+2017-07-06 12:29:41,971: __main__: INFO: Number of validation examples: 195600
+2017-07-06 12:29:41,971: __main__: INFO: Number of test examples: 189200
+2017-07-06 12:29:41,971: __main__: INFO: data loaded!
+2017-07-06 12:29:41,971: __main__: INFO: 
+2017-07-06 12:29:41,972: __main__: INFO: Loading model...
+2017-07-06 12:30:36,067: __main__: INFO: Model loaded.
+2017-07-06 12:30:36,068: __main__: INFO: 
+2017-07-06 12:30:36,069: __main__: INFO: Testing the model...
+2017-07-06 12:30:36,347: model: INFO: evaluating rand
+2017-07-06 12:45:01,505: model: INFO: test_perf: 79.823232323%
+2017-07-06 12:45:01,505: model: INFO: evaluating true
+2017-07-06 12:46:37,058: model: INFO: test_perf: 80.295983087%
+2017-07-06 12:46:37,058: model: INFO: 
+2017-07-06 12:46:37,058: model: DEBUG: verifying data format for recalls...
+2017-07-06 12:46:37,059: model: DEBUG: ok. computing 189440 probabilities now...
+2017-07-06 13:03:45,115: model: INFO: Computing recalls...
+2017-07-06 13:03:45,115: model: INFO: group_size: 2
+2017-07-06 13:03:45,482: model: INFO: recall@1 = 0.887579281184
+2017-07-06 13:03:45,482: model: INFO: group_size: 5
+2017-07-06 13:03:45,882: model: INFO: recall@1 = 0.716649048626
+2017-07-06 13:03:46,289: model: INFO: recall@2 = 0.882505285412
+2017-07-06 13:03:46,289: model: INFO: group_size: 10
+2017-07-06 13:03:46,793: model: INFO: recall@1 = 0.585835095137
+2017-07-06 13:03:47,296: model: INFO: recall@2 = 0.759038054968
+2017-07-06 13:03:47,798: model: INFO: recall@5 = 0.940856236786
+2017-07-06 13:03:47,799: model: INFO: 
+2017-07-06 13:03:47,799: model: INFO: Average test_perf=80.059607705%

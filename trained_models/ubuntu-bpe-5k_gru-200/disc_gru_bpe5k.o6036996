@@ -1,0 +1,485 @@
+VIRTUALENV = /nlu/users/nicolas_gontier/py
+THEANO_FLAGS = base_compiledir=/work/.theano-nicolas_gontier,floatX=float32,device=gpu,optimizer=fast_compile
+gpuarray = /nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/libgpuarray
+CUDA = /usr/local/cuda-8.0/bin
+PATH = /usr/local/cuda-8.0/bin:/nlu/users/nicolas_gontier/py/bin:/work/6036996.1.gpu.q:/opt/rh/devtoolset-2/root/usr/bin:/opt/uge850/bin:/opt/uge850/bin/lx-amd64:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/ibutils/bin:/home/nicolas_gontier/bin:/usr/X11R6/bin
+LD_LIBRARY_PATH = :/usr/local/cuda-8.0/lib64
+LIBRARY_PATH = /nlu/users/nicolas_gontier/py/lib
+CPATH = /nlu/users/nicolas_gontier/py/include
+HOME = /nlu/users/nicolas_gontier/home
+
+2017-06-26 21:52:20,692: __main__: INFO: args: Namespace(W_fname='W_BPE-5k-rnd.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/bpe_v2', dataset_fname='DE_BPE-5k-dataset.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, encoder='gru', fine_tune_M=True, fine_tune_W=True, hidden_size=200, is_bidirectional=False, k=4, load_path='.', load_prefix='twitter', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=False, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='gru-200_adam_ubuntu-bpe-5k', seed=42, sort_by_len=False, test=False, train_examples=None, use_ntn=False)
+2017-06-26 21:52:20,696: __main__: INFO: saved.
+2017-06-26 21:52:20,696: __main__: INFO: 
+2017-06-26 21:52:20,696: __main__: INFO: Loading data...
+2017-06-26 21:53:11,249: __main__: INFO: W.shape: (6285, 300)
+2017-06-26 21:53:11,250: __main__: INFO: Number of training examples: 1000192
+2017-06-26 21:53:11,250: __main__: INFO: Number of validation examples: 195600
+2017-06-26 21:53:11,250: __main__: INFO: Number of test examples: 189200
+2017-06-26 21:53:11,250: __main__: INFO: data loaded!
+2017-06-26 21:53:11,250: __main__: INFO: 
+2017-06-26 21:53:11,250: __main__: INFO: Creating model...
+2017-06-26 21:53:11,367: model: INFO: Building a GRU model
+2017-06-26 21:53:11,620: model: INFO: total_params: 2226301
+2017-06-26 21:53:11,953: model: INFO: compiling theano functions...
+2017-06-26 21:53:20,571: theano.sandbox.cuda.opt: WARNING: Using slow version of GpuAdvancedIncSubtensor
+2017-06-26 21:53:20,598: theano.sandbox.cuda.opt: WARNING: Using slow version of GpuAdvancedIncSubtensor
+2017-06-26 21:53:26,478: __main__: INFO: Model created.
+2017-06-26 21:53:26,478: __main__: INFO: 
+2017-06-26 21:53:26,478: __main__: INFO: Training model...
+
+0% [#                             ] 100% | ETA: 04:37:540% [##                            ] 100% | ETA: 04:30:200% [###                           ] 100% | ETA: 04:19:410% [####                          ] 100% | ETA: 04:09:180% [#####                         ] 100% | ETA: 03:59:200% [######                        ] 100% | ETA: 03:49:550% [#######                       ] 100% | ETA: 03:40:330% [########                      ] 100% | ETA: 03:31:120% [#########                     ] 100% | ETA: 03:21:430% [##########                    ] 100% | ETA: 03:11:550% [###########                   ] 100% | ETA: 03:02:160% [############                  ] 100% | ETA: 02:52:380% [#############                 ] 100% | ETA: 02:42:560% [##############                ] 100% | ETA: 02:33:190% [###############               ] 100% | ETA: 02:23:440% [################              ] 100% | ETA: 02:14:090% [#################             ] 100% | ETA: 02:04:340% [##################            ] 100% | ETA: 01:54:560% [###################           ] 100% | ETA: 01:45:200% [####################          ] 100% | ETA: 01:35:450% [#####################         ] 100% | ETA: 01:26:110% [######################        ] 100% | ETA: 01:16:320% [#######################       ] 100% | ETA: 01:06:590% [########################      ] 100% | ETA: 00:57:260% [#########################     ] 100% | ETA: 00:47:520% [##########################    ] 100% | ETA: 00:38:140% [###########################   ] 100% | ETA: 00:28:410% [############################  ] 100% | ETA: 00:19:070% [############################# ] 100% | ETA: 00:09:330% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:47:25
+2017-06-27 02:40:52,351: model: INFO: epoch 1: training cost 0.563034705, took 17245(s)
+2017-06-27 02:40:52,351: model: INFO: 
+2017-06-27 02:40:52,351: model: INFO: Evaluating Training set:
+2017-06-27 02:40:53,805: model: INFO: evaluating rand
+2017-06-27 03:28:16,748: model: INFO: train_perf: 79.471414261%
+2017-06-27 03:28:16,748: model: INFO: evaluating true
+2017-06-27 04:15:54,521: model: INFO: train_perf: 78.044223233%
+2017-06-27 04:15:54,524: model: INFO: epoch 1: train perf=78.757818747%
+2017-06-27 04:15:54,524: model: INFO: 
+2017-06-27 04:15:54,524: model: INFO: Evaluating Validation set:
+2017-06-27 04:15:54,815: model: INFO: evaluating rand
+2017-06-27 04:32:47,791: model: INFO: val_perf: 77.776641672%
+2017-06-27 04:32:47,791: model: INFO: evaluating true
+2017-06-27 04:34:41,010: model: INFO: val_perf: 75.674846626%
+2017-06-27 04:34:41,010: model: INFO: 
+2017-06-27 04:34:41,010: model: DEBUG: verifying data format for recalls...
+2017-06-27 04:34:41,011: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-27 04:53:08,015: model: INFO: Computing recalls...
+2017-06-27 04:53:08,015: model: INFO: group_size: 2
+2017-06-27 04:53:08,474: model: INFO: recall@1 = 0.852402862986
+2017-06-27 04:53:08,474: model: INFO: group_size: 5
+2017-06-27 04:53:08,972: model: INFO: recall@1 = 0.653476482618
+2017-06-27 04:53:09,468: model: INFO: recall@2 = 0.842024539877
+2017-06-27 04:53:09,468: model: INFO: group_size: 10
+2017-06-27 04:53:10,101: model: INFO: recall@1 = 0.518609406953
+2017-06-27 04:53:10,743: model: INFO: recall@2 = 0.692944785276
+2017-06-27 04:53:11,379: model: INFO: recall@5 = 0.911247443763
+2017-06-27 04:53:11,380: model: INFO: epoch 1: val_perf=76.725744149%
+2017-06-27 04:53:11,380: model: INFO: 
+2017-06-27 04:53:11,380: model: INFO: Improved average validation score!
+2017-06-27 04:53:11,380: model: INFO: 
+2017-06-27 04:53:11,380: model: INFO: Saving current model parameters...
+2017-06-27 04:53:11,479: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmppdGzVL/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,480: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmprcthk6/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,481: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpe7NGxh/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,481: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpSqCT83/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,481: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpBed9gf/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,482: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp_sJqB2/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,482: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpLods4l/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,482: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp1KGHC_/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,482: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpnJuLQi/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,483: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpkAHecj/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,483: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpUrTD5e/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,483: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpk6ymzv/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,484: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpbh8Zyi/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,484: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpcwtdrr/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,484: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpZ3_rQ_/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,484: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpf27_n7/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,485: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpJBLzCv/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,485: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpuQ3a7u/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,485: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpeFM4Je/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,485: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp1webM5/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,486: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpQssMub/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,486: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpXGBPFq/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,486: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp05GFs8/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,487: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpwoOHOT/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,487: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpE6kkem/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,487: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpMoJctm/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,487: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpQJIifl/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,488: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpaDO5xL/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,488: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpdbAeiH/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,488: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpU1XBzz/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,489: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpiLPN2s/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,489: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp3CYlcy/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,489: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpMJIZl2/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,489: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpPz7tkC/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,490: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpcleoyq/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,490: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpDxm8pk/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,490: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpKeuNNa/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,490: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpkNGgPN/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,491: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp2WZUH3/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,491: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp7i4MIM/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,491: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp7Ty883/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,491: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpBGYsck/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,492: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmppSFbxz/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,492: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpZz8kEK/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,492: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpeXEI81/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,493: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpYzO9Be/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,493: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpyuGjqb/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,493: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpIqHtM4/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,493: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp0gXSQe/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,494: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmphdFZhG/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,494: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpfjZOHK/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,494: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpdOx3z4/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,494: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpcBsCEt/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,495: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpQZ0DQa/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,495: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpHpRft_/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,495: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp1q0yUi/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,495: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpW0JOgG/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,496: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp5kWZz3/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,496: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp2Q6ZxR/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,496: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmplIUELY/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,496: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpPjRpfW/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,497: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpCXl2h5/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,497: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp59xCzw/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,497: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpC9iY4u/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,497: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp5G3kkN/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,498: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpp59Jp6/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,498: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpZ5Pe8z/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,498: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpntTtrK/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,498: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp9cL8L6/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,499: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpdarQXl/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,499: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmppFjf1y/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,499: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpTv4auM/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,499: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpiGMQSz/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,500: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpUvpW93/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,500: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp1Ay9rc/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,500: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmppAnOKw/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,501: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpFKhDey/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,501: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp6ZsLp0/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,501: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpQtDDRn/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,501: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpXYu6Mi/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,502: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpnC6xfG/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,502: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpVEnJTF/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,502: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpt5DDyV/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,502: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp7Nsi28/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,503: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpVGnITb/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,503: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmphvzPo8/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,503: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpLY9n48/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,503: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpLtruuG/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,504: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpom3nSx/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,504: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp3EGLaK/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,504: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpIkbcmO/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,504: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmplifYYJ/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,504: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp8_S9sC/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,505: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpBTRv7B/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,505: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpnRUFN0/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,505: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpKHQ2kK/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,506: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpmzwYvh/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,506: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpn05peP/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,506: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmplLVKeT/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,506: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpa86MhG/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,506: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpPyg_hY/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,507: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpKevgRG/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,507: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmprQRDJX/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,507: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp6I5C8t/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,507: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpkKeZ5E/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,508: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpPTH2v9/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,508: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp8M4j4g/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,508: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpWfU9Ug/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,508: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpYUJ1X3/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,509: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpNV8LQc/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,509: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpClANk0/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,509: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpwyMWkd/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,509: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpQgjCAT/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,510: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmps876bx/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,510: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmptFrRSh/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,510: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpmJ1FRi/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,510: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpnXeS7F/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,511: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp_nAfWe/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,511: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpSBPrkn/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,511: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpPf_C0L/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,511: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp6S4zkb/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,512: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmparyf4X/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,512: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmphPFbly/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,512: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpzgQp99/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,512: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpl2hsoU/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,513: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpQnnr2l/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,513: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmp7MavTX/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:11,513: theano.gof.cmodule: WARNING: Removing key file /.local/work/.theano-nicolas_gontier/compiledir_Linux-2.6-el6.x86_64-x86_64-with-centos-6.8-Final-x86_64-2.7.3-64/tmpnQisO6/key.pkl because the corresponding module is gone from the file system.
+2017-06-27 04:53:13,265: model: INFO: Saving model...
+2017-06-27 04:53:49,721: model: INFO: Saved.
+2017-06-27 04:53:49,723: model: INFO: 
+2017-06-27 04:53:49,724: model: INFO: Saving performances...
+2017-06-27 04:53:49,725: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:38:590% [##                            ] 100% | ETA: 04:29:230% [###                           ] 100% | ETA: 04:19:390% [####                          ] 100% | ETA: 04:09:540% [#####                         ] 100% | ETA: 04:00:130% [######                        ] 100% | ETA: 03:50:230% [#######                       ] 100% | ETA: 03:40:520% [########                      ] 100% | ETA: 03:31:190% [#########                     ] 100% | ETA: 03:21:430% [##########                    ] 100% | ETA: 03:12:020% [###########                   ] 100% | ETA: 03:02:240% [############                  ] 100% | ETA: 02:52:480% [#############                 ] 100% | ETA: 02:43:100% [##############                ] 100% | ETA: 02:33:360% [###############               ] 100% | ETA: 02:24:020% [################              ] 100% | ETA: 02:14:260% [#################             ] 100% | ETA: 02:04:510% [##################            ] 100% | ETA: 01:55:120% [###################           ] 100% | ETA: 01:45:370% [####################          ] 100% | ETA: 01:36:030% [#####################         ] 100% | ETA: 01:26:280% [######################        ] 100% | ETA: 01:16:480% [#######################       ] 100% | ETA: 01:07:130% [########################      ] 100% | ETA: 00:57:380% [#########################     ] 100% | ETA: 00:48:030% [##########################    ] 100% | ETA: 00:38:220% [###########################   ] 100% | ETA: 00:28:470% [############################  ] 100% | ETA: 00:19:110% [############################# ] 100% | ETA: 00:09:350% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:48:27
+2017-06-27 09:42:17,433: model: INFO: epoch 2: training cost 0.405109089, took 17307(s)
+2017-06-27 09:42:17,433: model: INFO: 
+2017-06-27 09:42:17,433: model: INFO: Evaluating Training set:
+2017-06-27 09:42:17,536: model: INFO: evaluating rand
+2017-06-27 10:29:20,689: model: INFO: train_perf: 83.655151591%
+2017-06-27 10:29:20,689: model: INFO: evaluating true
+2017-06-27 11:17:12,593: model: INFO: train_perf: 84.924970943%
+2017-06-27 11:17:12,594: model: INFO: epoch 2: train perf=84.290061267%
+2017-06-27 11:17:12,594: model: INFO: 
+2017-06-27 11:17:12,594: model: INFO: Evaluating Validation set:
+2017-06-27 11:17:12,614: model: INFO: evaluating rand
+2017-06-27 11:34:06,721: model: INFO: val_perf: 79.636446262%
+2017-06-27 11:34:06,721: model: INFO: evaluating true
+2017-06-27 11:36:00,413: model: INFO: val_perf: 80.736196319%
+2017-06-27 11:36:00,413: model: INFO: 
+2017-06-27 11:36:00,413: model: DEBUG: verifying data format for recalls...
+2017-06-27 11:36:00,415: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-27 11:54:46,390: model: INFO: Computing recalls...
+2017-06-27 11:54:46,391: model: INFO: group_size: 2
+2017-06-27 11:54:46,853: model: INFO: recall@1 = 0.88726993865
+2017-06-27 11:54:46,853: model: INFO: group_size: 5
+2017-06-27 11:54:47,355: model: INFO: recall@1 = 0.719580777096
+2017-06-27 11:54:47,855: model: INFO: recall@2 = 0.883895705521
+2017-06-27 11:54:47,856: model: INFO: group_size: 10
+2017-06-27 11:54:48,495: model: INFO: recall@1 = 0.59591002045
+2017-06-27 11:54:49,141: model: INFO: recall@2 = 0.758742331288
+2017-06-27 11:54:49,786: model: INFO: recall@5 = 0.941257668712
+2017-06-27 11:54:49,786: model: INFO: epoch 2: val_perf=80.186321291%
+2017-06-27 11:54:49,786: model: INFO: 
+2017-06-27 11:54:49,787: model: INFO: Improved average validation score!
+2017-06-27 11:54:49,787: model: INFO: 
+2017-06-27 11:54:49,787: model: INFO: Saving current model parameters...
+2017-06-27 11:54:49,826: model: INFO: Saving model...
+2017-06-27 11:55:29,219: model: INFO: Saved.
+2017-06-27 11:55:29,219: model: INFO: 
+2017-06-27 11:55:29,219: model: INFO: Saving performances...
+2017-06-27 11:55:29,221: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:41:580% [##                            ] 100% | ETA: 04:31:400% [###                           ] 100% | ETA: 04:21:160% [####                          ] 100% | ETA: 04:11:250% [#####                         ] 100% | ETA: 04:01:300% [######                        ] 100% | ETA: 03:51:440% [#######                       ] 100% | ETA: 03:41:570% [########                      ] 100% | ETA: 03:32:210% [#########                     ] 100% | ETA: 03:22:480% [##########                    ] 100% | ETA: 03:13:120% [###########                   ] 100% | ETA: 03:03:290% [############                  ] 100% | ETA: 02:53:460% [#############                 ] 100% | ETA: 02:43:570% [##############                ] 100% | ETA: 02:34:210% [###############               ] 100% | ETA: 02:24:450% [################              ] 100% | ETA: 02:15:090% [#################             ] 100% | ETA: 02:05:310% [##################            ] 100% | ETA: 01:55:470% [###################           ] 100% | ETA: 01:46:080% [####################          ] 100% | ETA: 01:36:300% [#####################         ] 100% | ETA: 01:26:520% [######################        ] 100% | ETA: 01:17:090% [#######################       ] 100% | ETA: 01:07:320% [########################      ] 100% | ETA: 00:57:530% [#########################     ] 100% | ETA: 00:48:150% [##########################    ] 100% | ETA: 00:38:320% [###########################   ] 100% | ETA: 00:28:530% [############################  ] 100% | ETA: 00:19:150% [############################# ] 100% | ETA: 00:09:370% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:49:25
+2017-06-27 16:44:55,189: model: INFO: epoch 3: training cost 0.337051811, took 17365(s)
+2017-06-27 16:44:55,189: model: INFO: 
+2017-06-27 16:44:55,190: model: INFO: Evaluating Training set:
+2017-06-27 16:44:55,291: model: INFO: evaluating rand
+2017-06-27 17:32:11,077: model: INFO: train_perf: 86.259490090%
+2017-06-27 17:32:11,078: model: INFO: evaluating true
+2017-06-27 18:19:17,171: model: INFO: train_perf: 88.090174904%
+2017-06-27 18:19:17,171: model: INFO: epoch 3: train perf=87.174832497%
+2017-06-27 18:19:17,171: model: INFO: 
+2017-06-27 18:19:17,172: model: INFO: Evaluating Validation set:
+2017-06-27 18:19:17,191: model: INFO: evaluating rand
+2017-06-27 18:35:51,100: model: INFO: val_perf: 79.252442627%
+2017-06-27 18:35:51,100: model: INFO: evaluating true
+2017-06-27 18:37:42,009: model: INFO: val_perf: 81.099182004%
+2017-06-27 18:37:42,009: model: INFO: 
+2017-06-27 18:37:42,009: model: DEBUG: verifying data format for recalls...
+2017-06-27 18:37:42,010: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-27 18:56:05,365: model: INFO: Computing recalls...
+2017-06-27 18:56:05,365: model: INFO: group_size: 2
+2017-06-27 18:56:05,820: model: INFO: recall@1 = 0.885429447853
+2017-06-27 18:56:05,820: model: INFO: group_size: 5
+2017-06-27 18:56:06,317: model: INFO: recall@1 = 0.720347648262
+2017-06-27 18:56:06,818: model: INFO: recall@2 = 0.885531697342
+2017-06-27 18:56:06,818: model: INFO: group_size: 10
+2017-06-27 18:56:07,456: model: INFO: recall@1 = 0.592842535787
+2017-06-27 18:56:08,097: model: INFO: recall@2 = 0.760582822086
+2017-06-27 18:56:08,728: model: INFO: recall@5 = 0.942382413088
+2017-06-27 18:56:08,729: model: INFO: epoch 3: val_perf=80.175812315%
+2017-06-27 18:56:08,729: model: INFO: 
+2017-06-27 18:56:08,729: model: INFO: No improvement! patience: 9
+2017-06-27 18:56:08,729: model: INFO: 
+2017-06-27 18:56:08,729: model: INFO: Saving performances...
+2017-06-27 18:56:08,729: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:38:310% [##                            ] 100% | ETA: 04:29:000% [###                           ] 100% | ETA: 04:19:300% [####                          ] 100% | ETA: 04:10:010% [#####                         ] 100% | ETA: 04:00:260% [######                        ] 100% | ETA: 03:51:120% [#######                       ] 100% | ETA: 03:42:050% [########                      ] 100% | ETA: 03:32:370% [#########                     ] 100% | ETA: 03:23:090% [##########                    ] 100% | ETA: 03:13:360% [###########                   ] 100% | ETA: 03:04:010% [############                  ] 100% | ETA: 02:54:260% [#############                 ] 100% | ETA: 02:44:460% [##############                ] 100% | ETA: 02:35:090% [###############               ] 100% | ETA: 02:25:290% [################              ] 100% | ETA: 02:15:500% [#################             ] 100% | ETA: 02:06:090% [##################            ] 100% | ETA: 01:56:230% [###################           ] 100% | ETA: 01:46:440% [####################          ] 100% | ETA: 01:37:050% [#####################         ] 100% | ETA: 01:27:240% [######################        ] 100% | ETA: 01:17:390% [#######################       ] 100% | ETA: 01:07:580% [########################      ] 100% | ETA: 00:58:160% [#########################     ] 100% | ETA: 00:48:340% [##########################    ] 100% | ETA: 00:38:480% [###########################   ] 100% | ETA: 00:29:060% [############################  ] 100% | ETA: 00:19:240% [############################# ] 100% | ETA: 00:09:420% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:51:33
+2017-06-27 23:47:42,208: model: INFO: epoch 4: training cost 0.282927225, took 17493(s)
+2017-06-27 23:47:42,208: model: INFO: 
+2017-06-27 23:47:42,208: model: INFO: Evaluating Training set:
+2017-06-27 23:47:42,312: model: INFO: evaluating rand
+2017-06-28 00:35:08,184: model: INFO: train_perf: 87.873480136%
+2017-06-28 00:35:08,184: model: INFO: evaluating true
+2017-06-28 01:22:31,542: model: INFO: train_perf: 90.320941519%
+2017-06-28 01:22:31,543: model: INFO: epoch 4: train perf=89.097210828%
+2017-06-28 01:22:31,543: model: INFO: 
+2017-06-28 01:22:31,543: model: INFO: Evaluating Validation set:
+2017-06-28 01:22:31,563: model: INFO: evaluating rand
+2017-06-28 01:39:12,542: model: INFO: val_perf: 78.282208589%
+2017-06-28 01:39:12,542: model: INFO: evaluating true
+2017-06-28 01:41:04,711: model: INFO: val_perf: 80.347648262%
+2017-06-28 01:41:04,711: model: INFO: 
+2017-06-28 01:41:04,711: model: DEBUG: verifying data format for recalls...
+2017-06-28 01:41:04,712: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-28 01:59:37,197: model: INFO: Computing recalls...
+2017-06-28 01:59:37,197: model: INFO: group_size: 2
+2017-06-28 01:59:37,658: model: INFO: recall@1 = 0.882719836401
+2017-06-28 01:59:37,658: model: INFO: group_size: 5
+2017-06-28 01:59:38,162: model: INFO: recall@1 = 0.709662576687
+2017-06-28 01:59:38,659: model: INFO: recall@2 = 0.877147239264
+2017-06-28 01:59:38,659: model: INFO: group_size: 10
+2017-06-28 01:59:39,280: model: INFO: recall@1 = 0.581083844581
+2017-06-28 01:59:39,908: model: INFO: recall@2 = 0.74672801636
+2017-06-28 01:59:40,541: model: INFO: recall@5 = 0.936400817996
+2017-06-28 01:59:40,541: model: INFO: epoch 4: val_perf=79.314928425%
+2017-06-28 01:59:40,541: model: INFO: 
+2017-06-28 01:59:40,541: model: INFO: No improvement! patience: 8
+2017-06-28 01:59:40,541: model: INFO: 
+2017-06-28 01:59:40,541: model: INFO: Saving performances...
+2017-06-28 01:59:40,543: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:42:580% [##                            ] 100% | ETA: 04:33:090% [###                           ] 100% | ETA: 04:23:160% [####                          ] 100% | ETA: 04:13:250% [#####                         ] 100% | ETA: 04:03:310% [######                        ] 100% | ETA: 03:53:480% [#######                       ] 100% | ETA: 03:44:100% [########                      ] 100% | ETA: 03:34:240% [#########                     ] 100% | ETA: 03:24:400% [##########                    ] 100% | ETA: 03:14:510% [###########                   ] 100% | ETA: 03:05:040% [############                  ] 100% | ETA: 02:55:160% [#############                 ] 100% | ETA: 02:45:260% [##############                ] 100% | ETA: 02:35:390% [###############               ] 100% | ETA: 02:25:520% [################              ] 100% | ETA: 02:16:080% [#################             ] 100% | ETA: 02:06:250% [##################            ] 100% | ETA: 01:56:350% [###################           ] 100% | ETA: 01:46:520% [####################          ] 100% | ETA: 01:37:110% [#####################         ] 100% | ETA: 01:27:310% [######################        ] 100% | ETA: 01:17:450% [#######################       ] 100% | ETA: 01:08:040% [########################      ] 100% | ETA: 00:58:220% [#########################     ] 100% | ETA: 00:48:400% [##########################    ] 100% | ETA: 00:38:530% [###########################   ] 100% | ETA: 00:29:100% [############################  ] 100% | ETA: 00:19:270% [############################# ] 100% | ETA: 00:09:430% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:52:25
+2017-06-28 06:52:05,772: model: INFO: epoch 5: training cost 0.229985240, took 17545(s)
+2017-06-28 06:52:05,772: model: INFO: 
+2017-06-28 06:52:05,772: model: INFO: Evaluating Training set:
+2017-06-28 06:52:05,873: model: INFO: evaluating rand
+2017-06-28 07:39:47,964: model: INFO: train_perf: 91.520353830%
+2017-06-28 07:39:47,964: model: INFO: evaluating true
+2017-06-28 08:27:25,693: model: INFO: train_perf: 89.769601479%
+2017-06-28 08:27:25,694: model: INFO: epoch 5: train perf=90.644977654%
+2017-06-28 08:27:25,694: model: INFO: 
+2017-06-28 08:27:25,694: model: INFO: Evaluating Validation set:
+2017-06-28 08:27:25,714: model: INFO: evaluating rand
+2017-06-28 08:44:10,099: model: INFO: val_perf: 80.351056578%
+2017-06-28 08:44:10,099: model: INFO: evaluating true
+2017-06-28 08:46:02,357: model: INFO: val_perf: 77.106339468%
+2017-06-28 08:46:02,357: model: INFO: 
+2017-06-28 08:46:02,357: model: DEBUG: verifying data format for recalls...
+2017-06-28 08:46:02,358: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-28 09:04:39,220: model: INFO: Computing recalls...
+2017-06-28 09:04:39,220: model: INFO: group_size: 2
+2017-06-28 09:04:39,688: model: INFO: recall@1 = 0.871625766871
+2017-06-28 09:04:39,688: model: INFO: group_size: 5
+2017-06-28 09:04:40,199: model: INFO: recall@1 = 0.696472392638
+2017-06-28 09:04:40,702: model: INFO: recall@2 = 0.868507157464
+2017-06-28 09:04:40,702: model: INFO: group_size: 10
+2017-06-28 09:04:41,338: model: INFO: recall@1 = 0.564110429448
+2017-06-28 09:04:41,977: model: INFO: recall@2 = 0.734662576687
+2017-06-28 09:04:42,618: model: INFO: recall@5 = 0.929447852761
+2017-06-28 09:04:42,618: model: INFO: epoch 5: val_perf=78.728698023%
+2017-06-28 09:04:42,618: model: INFO: 
+2017-06-28 09:04:42,618: model: INFO: No improvement! patience: 7
+2017-06-28 09:04:42,618: model: INFO: 
+2017-06-28 09:04:42,618: model: INFO: Saving performances...
+2017-06-28 09:04:42,621: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:43:590% [##                            ] 100% | ETA: 04:33:020% [###                           ] 100% | ETA: 04:22:280% [####                          ] 100% | ETA: 04:12:210% [#####                         ] 100% | ETA: 04:02:300% [######                        ] 100% | ETA: 03:52:410% [#######                       ] 100% | ETA: 03:42:540% [########                      ] 100% | ETA: 03:33:100% [#########                     ] 100% | ETA: 03:23:300% [##########                    ] 100% | ETA: 03:13:480% [###########                   ] 100% | ETA: 03:04:090% [############                  ] 100% | ETA: 02:54:290% [#############                 ] 100% | ETA: 02:44:410% [##############                ] 100% | ETA: 02:34:590% [###############               ] 100% | ETA: 02:25:180% [################              ] 100% | ETA: 02:15:370% [#################             ] 100% | ETA: 02:05:560% [##################            ] 100% | ETA: 01:56:120% [###################           ] 100% | ETA: 01:46:330% [####################          ] 100% | ETA: 01:36:530% [#####################         ] 100% | ETA: 01:27:130% [######################        ] 100% | ETA: 01:17:280% [#######################       ] 100% | ETA: 01:07:480% [########################      ] 100% | ETA: 00:58:070% [#########################     ] 100% | ETA: 00:48:270% [##########################    ] 100% | ETA: 00:38:420% [###########################   ] 100% | ETA: 00:29:010% [############################  ] 100% | ETA: 00:19:200% [############################# ] 100% | ETA: 00:09:400% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:50:43
+2017-06-28 13:55:26,285: model: INFO: epoch 6: training cost 0.184168816, took 17443(s)
+2017-06-28 13:55:26,285: model: INFO: 
+2017-06-28 13:55:26,285: model: INFO: Evaluating Training set:
+2017-06-28 13:55:26,386: model: INFO: evaluating rand
+2017-06-28 14:42:28,204: model: INFO: train_perf: 93.593827168%
+2017-06-28 14:42:28,204: model: INFO: evaluating true
+2017-06-28 15:29:30,004: model: INFO: train_perf: 88.803156002%
+2017-06-28 15:29:30,004: model: INFO: epoch 6: train perf=91.198491585%
+2017-06-28 15:29:30,004: model: INFO: 
+2017-06-28 15:29:30,004: model: INFO: Evaluating Validation set:
+2017-06-28 15:29:30,024: model: INFO: evaluating rand
+2017-06-28 15:46:06,680: model: INFO: val_perf: 81.266189502%
+2017-06-28 15:46:06,680: model: INFO: evaluating true
+2017-06-28 15:47:58,410: model: INFO: val_perf: 74.192229039%
+2017-06-28 15:47:58,410: model: INFO: 
+2017-06-28 15:47:58,410: model: DEBUG: verifying data format for recalls...
+2017-06-28 15:47:58,411: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-28 16:06:25,005: model: INFO: Computing recalls...
+2017-06-28 16:06:25,005: model: INFO: group_size: 2
+2017-06-28 16:06:25,515: model: INFO: recall@1 = 0.867944785276
+2017-06-28 16:06:25,516: model: INFO: group_size: 5
+2017-06-28 16:06:26,065: model: INFO: recall@1 = 0.67990797546
+2017-06-28 16:06:26,619: model: INFO: recall@2 = 0.859918200409
+2017-06-28 16:06:26,619: model: INFO: group_size: 10
+2017-06-28 16:06:27,304: model: INFO: recall@1 = 0.542484662577
+2017-06-28 16:06:27,997: model: INFO: recall@2 = 0.718353783231
+2017-06-28 16:06:28,691: model: INFO: recall@5 = 0.922443762781
+2017-06-28 16:06:28,691: model: INFO: epoch 6: val_perf=77.729209271%
+2017-06-28 16:06:28,691: model: INFO: 
+2017-06-28 16:06:28,691: model: INFO: No improvement! patience: 6
+2017-06-28 16:06:28,691: model: INFO: 
+2017-06-28 16:06:28,692: model: INFO: Saving performances...
+2017-06-28 16:06:28,695: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:42:180% [##                            ] 100% | ETA: 04:32:310% [###                           ] 100% | ETA: 04:22:170% [####                          ] 100% | ETA: 04:12:160% [#####                         ] 100% | ETA: 04:02:190% [######                        ] 100% | ETA: 03:52:340% [#######                       ] 100% | ETA: 03:42:510% [########                      ] 100% | ETA: 03:33:140% [#########                     ] 100% | ETA: 03:23:360% [##########                    ] 100% | ETA: 03:13:540% [###########                   ] 100% | ETA: 03:04:120% [############                  ] 100% | ETA: 02:54:310% [#############                 ] 100% | ETA: 02:44:490% [##############                ] 100% | ETA: 02:35:080% [###############               ] 100% | ETA: 02:25:290% [################              ] 100% | ETA: 02:15:490% [#################             ] 100% | ETA: 02:06:070% [##################            ] 100% | ETA: 01:56:220% [###################           ] 100% | ETA: 01:46:410% [####################          ] 100% | ETA: 01:37:000% [#####################         ] 100% | ETA: 01:27:190% [######################        ] 100% | ETA: 01:17:320% [#######################       ] 100% | ETA: 01:07:510% [########################      ] 100% | ETA: 00:58:100% [#########################     ] 100% | ETA: 00:48:290% [##########################    ] 100% | ETA: 00:38:440% [###########################   ] 100% | ETA: 00:29:030% [############################  ] 100% | ETA: 00:19:220% [############################# ] 100% | ETA: 00:09:410% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:51:03
+2017-06-28 20:57:32,524: model: INFO: epoch 7: training cost 0.149492474, took 17463(s)
+2017-06-28 20:57:32,524: model: INFO: 
+2017-06-28 20:57:32,524: model: INFO: Evaluating Training set:
+2017-06-28 20:57:32,626: model: INFO: evaluating rand
+2017-06-28 21:44:45,838: model: INFO: train_perf: 93.929741846%
+2017-06-28 21:44:45,838: model: INFO: evaluating true
+2017-06-28 22:31:45,383: model: INFO: train_perf: 90.350549039%
+2017-06-28 22:31:45,384: model: INFO: epoch 7: train perf=92.140145443%
+2017-06-28 22:31:45,384: model: INFO: 
+2017-06-28 22:31:45,384: model: INFO: Evaluating Validation set:
+2017-06-28 22:31:45,404: model: INFO: evaluating rand
+2017-06-28 22:48:18,741: model: INFO: val_perf: 80.547602818%
+2017-06-28 22:48:18,741: model: INFO: evaluating true
+2017-06-28 22:50:10,399: model: INFO: val_perf: 74.335378323%
+2017-06-28 22:50:10,399: model: INFO: 
+2017-06-28 22:50:10,399: model: DEBUG: verifying data format for recalls...
+2017-06-28 22:50:10,401: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-28 23:08:35,504: model: INFO: Computing recalls...
+2017-06-28 23:08:35,505: model: INFO: group_size: 2
+2017-06-28 23:08:35,958: model: INFO: recall@1 = 0.861860940695
+2017-06-28 23:08:35,958: model: INFO: group_size: 5
+2017-06-28 23:08:36,447: model: INFO: recall@1 = 0.671881390593
+2017-06-28 23:08:36,941: model: INFO: recall@2 = 0.854805725971
+2017-06-28 23:08:36,942: model: INFO: group_size: 10
+2017-06-28 23:08:37,565: model: INFO: recall@1 = 0.538445807771
+2017-06-28 23:08:38,192: model: INFO: recall@2 = 0.710787321063
+2017-06-28 23:08:38,825: model: INFO: recall@5 = 0.91963190184
+2017-06-28 23:08:38,825: model: INFO: epoch 7: val_perf=77.441490570%
+2017-06-28 23:08:38,825: model: INFO: 
+2017-06-28 23:08:38,825: model: INFO: No improvement! patience: 5
+2017-06-28 23:08:38,826: model: INFO: 
+2017-06-28 23:08:38,826: model: INFO: Saving performances...
+2017-06-28 23:08:38,828: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:41:150% [##                            ] 100% | ETA: 04:31:220% [###                           ] 100% | ETA: 04:21:380% [####                          ] 100% | ETA: 04:11:460% [#####                         ] 100% | ETA: 04:01:580% [######                        ] 100% | ETA: 03:52:190% [#######                       ] 100% | ETA: 03:42:400% [########                      ] 100% | ETA: 03:33:010% [#########                     ] 100% | ETA: 03:23:250% [##########                    ] 100% | ETA: 03:13:420% [###########                   ] 100% | ETA: 03:04:060% [############                  ] 100% | ETA: 02:54:310% [#############                 ] 100% | ETA: 02:44:530% [##############                ] 100% | ETA: 02:35:130% [###############               ] 100% | ETA: 02:25:330% [################              ] 100% | ETA: 02:15:550% [#################             ] 100% | ETA: 02:06:160% [##################            ] 100% | ETA: 01:56:330% [###################           ] 100% | ETA: 01:46:530% [####################          ] 100% | ETA: 01:37:130% [#####################         ] 100% | ETA: 01:27:310% [######################        ] 100% | ETA: 01:17:450% [#######################       ] 100% | ETA: 01:08:030% [########################      ] 100% | ETA: 00:58:210% [#########################     ] 100% | ETA: 00:48:380% [##########################    ] 100% | ETA: 00:38:500% [###########################   ] 100% | ETA: 00:29:070% [############################  ] 100% | ETA: 00:19:240% [############################# ] 100% | ETA: 00:09:420% [##############################] 100% | ETA: 00:00:000% [##############################] 100% | ETA: 00:00:00
+Total time elapsed: 04:51:44
+2017-06-29 04:00:23,173: model: INFO: epoch 8: training cost 0.128611945, took 17504(s)
+2017-06-29 04:00:23,173: model: INFO: 
+2017-06-29 04:00:23,173: model: INFO: Evaluating Training set:
+2017-06-29 04:00:23,274: model: INFO: evaluating rand
+2017-06-29 04:47:31,903: model: INFO: train_perf: 94.272454796%
+2017-06-29 04:47:31,904: model: INFO: evaluating true
+2017-06-29 05:34:40,484: model: INFO: train_perf: 91.203165604%
+2017-06-29 05:34:40,485: model: INFO: epoch 8: train perf=92.737810200%
+2017-06-29 05:34:40,485: model: INFO: 
+2017-06-29 05:34:40,485: model: INFO: Evaluating Validation set:
+2017-06-29 05:34:40,505: model: INFO: evaluating rand
+2017-06-29 05:51:18,559: model: INFO: val_perf: 80.254487616%
+2017-06-29 05:51:18,559: model: INFO: evaluating true
+2017-06-29 05:53:10,071: model: INFO: val_perf: 74.483640082%
+2017-06-29 05:53:10,071: model: INFO: 
+2017-06-29 05:53:10,071: model: DEBUG: verifying data format for recalls...
+2017-06-29 05:53:10,073: model: DEBUG: ok. computing 195840 probabilities now...
+2017-06-29 06:11:36,876: model: INFO: Computing recalls...
+2017-06-29 06:11:36,877: model: INFO: group_size: 2
+2017-06-29 06:11:37,328: model: INFO: recall@1 = 0.858486707566
+2017-06-29 06:11:37,328: model: INFO: group_size: 5
+2017-06-29 06:11:37,819: model: INFO: recall@1 = 0.665899795501
+2017-06-29 06:11:38,311: model: INFO: recall@2 = 0.85536809816
+2017-06-29 06:11:38,311: model: INFO: group_size: 10
+2017-06-29 06:11:38,939: model: INFO: recall@1 = 0.532413087935
+2017-06-29 06:11:39,657: model: INFO: recall@2 = 0.708793456033
+2017-06-29 06:11:40,358: model: INFO: recall@5 = 0.917484662577
+2017-06-29 06:11:40,358: model: INFO: epoch 8: val_perf=77.369063849%
+2017-06-29 06:11:40,358: model: INFO: 
+2017-06-29 06:11:40,358: model: INFO: No improvement! patience: 4
+2017-06-29 06:11:40,358: model: INFO: 
+2017-06-29 06:11:40,358: model: INFO: Saving performances...
+2017-06-29 06:11:40,362: model: INFO: Saved.
+
+0% [#                             ] 100% | ETA: 04:42:390% [##                            ] 100% | ETA: 04:33:030% [###                           ] 100% | ETA: 04:23:290% [####                          ] 100% | ETA: 04:13:380% [#####                         ] 100% | ETA: 04:03:390% [######                        ] 100% | ETA: 03:53:450% [#######                       ] 100% | ETA: 03:43:530% [########                      ] 100% | ETA: 03:34:160% [#########                     ] 100% | ETA: 03:24:360% [##########                    ] 100% | ETA: 03:14:490% [###########                   ] 100% | ETA: 03:05:060% [############                  ] 100% | ETA: 02:55:220% [#############                 ] 100% | ETA: 02:45:350% [##############                ] 100% | ETA: 02:35:520% [###############               ] 100% | ETA: 02:26:090% [################              ] 100% | ETA: 02:16:260% [#################             ] 100% | ETA: 02:06:440% [##################            ] 100% | ETA: 01:56:550% [###################           ] 100% | ETA: 01:47:110% [####################          ] 100% | ETA: 01:37:260% [#####################         ] 100% | ETA: 01:27:410% [######################        ] 100% | ETA: 01:17:530% [#######################       ] 100% | ETA: 01:08:100% [########################      ] 100% | ETA: 00:58:270% [#########################     ] 100% | ETA: 00:48:430% [##########################    ] 100% | ETA: 00:38:550% [###########################   ] 100% | ETA: 00:29:110% [############################  ] 100% | ETA: 00:19:270% [############################# ] 100% | ETA: 00:09:43VIRTUALENV = /nlu/users/nicolas_gontier/py
+THEANO_FLAGS = base_compiledir=/work/.theano-nicolas_gontier,floatX=float32,device=gpu,optimizer=fast_compile
+gpuarray = /nlu/users/nicolas_gontier/py/lib/python2.7/site-packages/libgpuarray
+CUDA = /usr/local/cuda-8.0/bin
+PATH = /usr/local/cuda-8.0/bin:/nlu/users/nicolas_gontier/py/bin:/work/6036996.1.gpu.q:/opt/rh/devtoolset-2/root/usr/bin:/opt/uge850/bin:/opt/uge850/bin/lx-amd64:/usr/lib64/qt-3.3/bin:/usr/local/bin:/bin:/usr/bin:/usr/local/sbin:/usr/sbin:/sbin:/opt/ibutils/bin:/home/nicolas_gontier/bin:/usr/X11R6/bin
+LD_LIBRARY_PATH = :/usr/local/cuda-8.0/lib64
+LIBRARY_PATH = /nlu/users/nicolas_gontier/py/lib
+CPATH = /nlu/users/nicolas_gontier/py/include
+HOME = /nlu/users/nicolas_gontier/home
+
+2017-06-30 14:13:04,611: __main__: INFO: args: Namespace(W_fname='W_BPE-5k-rnd.pkl', act_penalty=500, batch_size=256, data_path='./ubuntu_dataset/bpe_v2', dataset_fname='DE_BPE-5k-dataset.pkl', dropout_in=0.0, dropout_out=0.0, emb_penalty=0.001, encoder='gru', fine_tune_M=True, fine_tune_W=True, hidden_size=200, is_bidirectional=False, k=4, load_path='.', load_prefix='twitter', lr=0.001, lr_decay=0.95, max_seqlen=160, n_epochs=100, n_recurrent_layers=1, optimizer='adam', patience=10, penalize_activations=False, penalize_emb_drift=False, penalize_emb_norm=False, plot_human_scores=False, plot_learning_curves=False, plot_response_length=False, resume=False, retrieve=False, save_path='.', save_prefix='gru-200_adam_ubuntu-bpe-5k', seed=42, sort_by_len=False, test=False, train_examples=None, use_ntn=False)
+2017-06-30 14:13:04,629: __main__: INFO: saved.
+2017-06-30 14:13:04,629: __main__: INFO: 
+2017-06-30 14:13:04,629: __main__: INFO: Loading data...
+2017-06-30 14:13:45,262: __main__: INFO: W.shape: (6285, 300)
+2017-06-30 14:13:45,262: __main__: INFO: Number of training examples: 1000192
+2017-06-30 14:13:45,262: __main__: INFO: Number of validation examples: 195600
+2017-06-30 14:13:45,262: __main__: INFO: Number of test examples: 189200
+2017-06-30 14:13:45,262: __main__: INFO: data loaded!
+2017-06-30 14:13:45,262: __main__: INFO: 
+2017-06-30 14:13:45,262: __main__: INFO: Creating model...
+2017-06-30 14:13:47,853: model: INFO: Building a GRU model
+2017-06-30 14:13:48,042: model: INFO: total_params: 2226301
+2017-06-30 14:13:48,357: model: INFO: compiling theano functions...
+2017-06-30 14:14:40,539: theano.sandbox.cuda.opt: WARNING: Using slow version of GpuAdvancedIncSubtensor
+2017-06-30 14:14:40,558: theano.sandbox.cuda.opt: WARNING: Using slow version of GpuAdvancedIncSubtensor
+2017-06-30 14:16:26,762: __main__: INFO: Model created.
+2017-06-30 14:16:26,762: __main__: INFO: 
+2017-06-30 14:16:26,762: __main__: INFO: Training model...
+
+0% [#                             ] 100% | ETA: 03:36:30

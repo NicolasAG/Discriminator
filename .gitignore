@@ -4,4 +4,7 @@
 *.txt
 *.sh.e*
 *.sh.o*
-
+*.zip
+give_access.sh
+*exp*.sh
+twitter_dataset/TF-IDF/*
